@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create account — ShareMe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .signup-section {
+      max-width: 420px;
+      margin: 2rem auto 4rem;
+      padding: 2rem;
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border);
+    }
+    .signup-section h1 {
+      margin: 0 0 1.5rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+    .form-group label {
+      display: block;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 0.35rem;
+      font-size: 0.9375rem;
+    }
+    .form-group input,
+    .form-group select {
+      padding: 0.6rem 0.75rem;
+      font: inherit;
+      font-size: 1rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-page);
+      color: var(--text-primary);
+    }
+    .form-group input {
+      width: 100%;
+    }
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .form-group select {
+      min-width: 0;
+    }
+    .phone-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .phone-row select {
+      width: 5rem;
+      flex-shrink: 0;
+    }
+    .phone-row input {
+      flex: 1;
+      min-width: 0;
+    }
+    .signup-section .btn-block {
+      margin-top: 0.5rem;
+      width: 100%;
+      padding: 0.75rem 1rem;
+    }
+    .signup-back {
+      display: inline-block;
+      margin-top: 1rem;
+      color: var(--text-secondary);
+      font-size: 0.9375rem;
+    }
+    .signup-back:hover {
+      color: var(--accent);
+    }
+    .form-error {
+      color: #dc2626;
+      font-size: 0.875rem;
+      margin-top: 0.35rem;
+      display: none;
+    }
+    .form-error.visible {
+      display: block;
+    }
+    input.input-error {
+      border-color: #dc2626;
+    }
+    .form-hint {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      margin: 0.5rem 0 1rem 0;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <a href="sharemelandingpage.html" class="logo">ShareMe</a>
+      <nav class="nav">
+        <a href="#" class="btn btn-primary">Login</a>
+        <span class="nav-divider" aria-hidden="true">|</span>
+        <p class="signup-text">
+          Not a user, <a href="createuser.html" class="link">sign up here</a>
+        </p>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="signup-section">
+      <h1>Create your account</h1>
+      <form action="#" method="post" id="signup-form">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="text" id="email" name="email" required placeholder="you@example.com" autocomplete="email" inputmode="email">
+          <p class="form-error" id="email-error" role="alert">Please provide a valid email address.</p>
+        </div>
+        <div class="form-group">
+          <label for="first-name">First name</label>
+          <input type="text" id="first-name" name="first-name" placeholder="First name" autocomplete="given-name">
+        </div>
+        <div class="form-group">
+          <label for="last-name">Last name</label>
+          <input type="text" id="last-name" name="last-name" placeholder="Last name" autocomplete="family-name">
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone number</label>
+          <div class="phone-row">
+            <select id="country-code" name="country-code" aria-label="Country code">
+              <option value="+1">+1</option>
+              <option value="+44">+44</option>
+              <option value="+91">+91</option>
+              <option value="+61">+61</option>
+              <option value="+81">+81</option>
+              <option value="+49">+49</option>
+              <option value="+33">+33</option>
+              <option value="+39">+39</option>
+              <option value="+34">+34</option>
+              <option value="+55">+55</option>
+              <option value="+86">+86</option>
+              <option value="+7">+7</option>
+              <option value="+82">+82</option>
+              <option value="+31">+31</option>
+              <option value="+41">+41</option>
+              <option value="+46">+46</option>
+              <option value="+27">+27</option>
+              <option value="+52">+52</option>
+              <option value="+353">+353</option>
+              <option value="+64">+64</option>
+            </select>
+            <input type="tel" id="phone" name="phone" required placeholder="Phone number" autocomplete="tel">
+          </div>
+          <p class="form-error" id="phone-error" role="alert">Phone number field is mandatory.</p>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required placeholder="Exactly 10 characters" autocomplete="new-password">
+          <p class="form-error" id="password-error" role="alert">Password is invalid.</p>
+        </div>
+        <div class="form-group">
+          <label for="confirm-password">Confirm password</label>
+          <input type="password" id="confirm-password" name="confirm-password" required placeholder="Enter password again" autocomplete="new-password">
+          <p class="form-error" id="confirm-error" role="alert">Passwords do not match.</p>
+          <p class="form-hint">Passwords must match. Cannot contain parts of the email and must be at least 10 characters long.</p>
+        </div>
+        <div class="form-group">
+          <label for="name">Display name</label>
+          <input type="text" id="name" name="name" placeholder="How others see you" autocomplete="name">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Sign up</button>
+      </form>
+      <a href="sharemelandingpage.html" class="signup-back">← Back to home</a>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <p class="footer-brand">ShareMe</p>
+      <nav class="footer-nav">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </nav>
+      <p class="footer-copy">&copy; 2026 ShareMe. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var form = document.getElementById('signup-form');
+      var emailInput = document.getElementById('email');
+      var passwordInput = document.getElementById('password');
+      var confirmInput = document.getElementById('confirm-password');
+      var phoneInput = document.getElementById('phone');
+      var emailError = document.getElementById('email-error');
+      var passwordError = document.getElementById('password-error');
+      var confirmError = document.getElementById('confirm-error');
+      var phoneError = document.getElementById('phone-error');
+
+      function showError(el, message) {
+        el.textContent = message;
+        el.classList.add('visible');
+      }
+      function hideError(el) {
+        el.classList.remove('visible');
+      }
+      function setInputError(input, hasError) {
+        input.classList.toggle('input-error', hasError);
+      }
+
+      function isValidEmail(value) {
+        if (!value || typeof value !== 'string') return false;
+        return value.indexOf('@') !== -1;
+      }
+
+      function isPasswordValid(password, email) {
+        if (!password || password.length !== 10) return false;
+        if (!email) return true;
+        var emailLower = email.toLowerCase();
+        var passwordLower = password.toLowerCase();
+        if (passwordLower === emailLower) return false;
+        var localPart = emailLower.split('@')[0];
+        if (localPart && localPart.length >= 2 && passwordLower.indexOf(localPart) !== -1) return false;
+        if (emailLower.indexOf(passwordLower) !== -1) return false;
+        return true;
+      }
+
+      function validateEmailField() {
+        var email = (emailInput.value || '').trim();
+        if (!email) {
+          hideError(emailError);
+          setInputError(emailInput, false);
+          return;
+        }
+        if (!isValidEmail(email)) {
+          showError(emailError, 'Please provide a valid email address.');
+          setInputError(emailInput, true);
+        } else {
+          hideError(emailError);
+          setInputError(emailInput, false);
+        }
+      }
+
+      function validatePasswordField() {
+        var password = passwordInput.value || '';
+        var email = (emailInput.value || '').trim();
+        if (!password) {
+          hideError(passwordError);
+          setInputError(passwordInput, false);
+          return;
+        }
+        if (!isPasswordValid(password, email)) {
+          showError(passwordError, 'Password is invalid.');
+          setInputError(passwordInput, true);
+        } else {
+          hideError(passwordError);
+          setInputError(passwordInput, false);
+        }
+      }
+
+      function validateConfirmField() {
+        var confirm = confirmInput.value || '';
+        var password = passwordInput.value || '';
+        if (!confirm) {
+          hideError(confirmError);
+          setInputError(confirmInput, false);
+          return;
+        }
+        if (password !== confirm) {
+          showError(confirmError, 'Passwords do not match.');
+          setInputError(confirmInput, true);
+        } else {
+          hideError(confirmError);
+          setInputError(confirmInput, false);
+        }
+      }
+
+      function validatePhoneField() {
+        var phone = (phoneInput.value || '').trim();
+        if (!phone) {
+          showError(phoneError, 'Phone number field is mandatory.');
+          setInputError(phoneInput, true);
+        } else {
+          hideError(phoneError);
+          setInputError(phoneInput, false);
+        }
+      }
+
+      emailInput.addEventListener('blur', validateEmailField);
+      passwordInput.addEventListener('blur', validatePasswordField);
+      confirmInput.addEventListener('blur', validateConfirmField);
+      phoneInput.addEventListener('blur', validatePhoneField);
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var email = (emailInput.value || '').trim();
+        var password = passwordInput.value || '';
+        var confirm = confirmInput.value || '';
+        var phone = (phoneInput.value || '').trim();
+
+        hideError(emailError);
+        hideError(passwordError);
+        hideError(confirmError);
+        hideError(phoneError);
+        setInputError(emailInput, false);
+        setInputError(passwordInput, false);
+        setInputError(confirmInput, false);
+        setInputError(phoneInput, false);
+
+        var valid = true;
+
+        if (!phone) {
+          showError(phoneError, 'Phone number field is mandatory.');
+          setInputError(phoneInput, true);
+          valid = false;
+        }
+
+        if (!isValidEmail(email)) {
+          showError(emailError, 'Please provide a valid email address.');
+          setInputError(emailInput, true);
+          valid = false;
+        }
+
+        if (!isPasswordValid(password, email)) {
+          showError(passwordError, 'Password is invalid.');
+          setInputError(passwordInput, true);
+          valid = false;
+        }
+
+        if (password !== confirm) {
+          showError(confirmError, 'Passwords do not match.');
+          setInputError(confirmInput, true);
+          valid = false;
+        }
+
+        if (valid) {
+          form.submit();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

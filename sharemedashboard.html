@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShareMe — Choose your profile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <a href="sharemelandingpage.html" class="logo">ShareMe</a>
+      <nav class="nav">
+        <a href="#" class="btn btn-primary">Login</a>
+        <span class="nav-divider" aria-hidden="true">|</span>
+        <p class="signup-text">
+          Not a user, <a href="createuser.html" class="link">sign up here</a>
+        </p>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="funnel">
+      <div class="funnel-qr-container">
+        <img
+          id="dashboard-qr"
+          src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=ShareMe-Personal&bgcolor=F8FAFC&color=334155"
+          alt="QR code for selected profile"
+          width="220"
+          height="220"
+          class="funnel-qr-image"
+        />
+      </div>
+      <h1 class="funnel-title">What would you like to share?</h1>
+      <div class="funnel-buttons" role="group" aria-label="Profile type">
+        <button type="button" class="btn btn-funnel selected" data-funnel="personal">Personal</button>
+        <button type="button" class="btn btn-funnel" data-funnel="professional">Professional</button>
+        <button type="button" class="btn btn-funnel" data-funnel="business">Business</button>
+        <button type="button" class="btn btn-funnel" data-funnel="academics">Academics</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <p class="footer-brand">ShareMe</p>
+      <nav class="footer-nav">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </nav>
+      <p class="footer-copy">&copy; 2026 ShareMe. All rights reserved.</p>
+    </div>
+  </footer>
+  <script>
+    var qrBase = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&bgcolor=F8FAFC&color=334155&data=';
+    var qrImg = document.getElementById('dashboard-qr');
+
+    function setQrFor(profile) {
+      var data = 'ShareMe-' + profile.charAt(0).toUpperCase() + profile.slice(1);
+      qrImg.src = qrBase + encodeURIComponent(data);
+      qrImg.alt = 'QR code for ' + profile + ' profile';
+    }
+
+    document.querySelectorAll('.btn-funnel').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.btn-funnel').forEach(function(b) { b.classList.remove('selected'); });
+        this.classList.add('selected');
+        setQrFor(this.getAttribute('data-funnel'));
+      });
+    });
+
+    setQrFor('personal');
+  </script>
+</body>
+</html>

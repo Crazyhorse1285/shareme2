@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShareMe — Personal Information Sharing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <a href="sharemelandingpage.html" class="logo">ShareMe</a>
+      <nav class="nav">
+        <a href="#" class="btn btn-primary">Login</a>
+        <span class="nav-divider" aria-hidden="true">|</span>
+        <p class="signup-text">
+          Not a user, <a href="createuser.html" class="link">sign up here</a>
+        </p>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="hero">
+      <div class="qr-container">
+        <img
+          src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=ShareMe&bgcolor=F8FAFC&color=334155"
+          alt="Generic QR code for ShareMe"
+          width="220"
+          height="220"
+          class="qr-image"
+        />
+      </div>
+      <p class="tagline">The future of personal information sharing!</p>
+    </section>
+
+    <section class="pricing">
+      <div class="pricing-grid">
+        <article class="pricing-tile">
+          <h2 class="pricing-tier">Free</h2>
+          <ul class="pricing-features">
+            <li>Basic features</li>
+            <li>Personal information only</li>
+            <li>50 shares</li>
+          </ul>
+          <a href="#" class="btn btn-primary btn-block">Upgrade to Pro</a>
+        </article>
+        <article class="pricing-tile">
+          <h2 class="pricing-tier">Pro</h2>
+          <ul class="pricing-features">
+            <li>Includes all basic features</li>
+            <li>Share all user information including professional, business and academic</li>
+            <li>500 shares</li>
+          </ul>
+          <a href="#" class="btn btn-secondary btn-block">Get Pro</a>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <p class="footer-brand">ShareMe</p>
+      <nav class="footer-nav">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </nav>
+      <p class="footer-copy">&copy; 2026 ShareMe. All rights reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>
