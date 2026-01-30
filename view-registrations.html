@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>View registrations — ShareMe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .registrations-section { max-width: 900px; margin: 2rem auto 4rem; padding: 1.5rem; }
+    .registrations-section h1 { margin: 0 0 1rem; font-size: 1.5rem; color: var(--text-primary); }
+    .registrations-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .registrations-table th, .registrations-table td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .registrations-table th { font-weight: 600; color: var(--text-secondary); background: var(--bg-page); }
+    .registrations-table tr:hover { background: var(--bg-card); }
+    .registrations-empty, .registrations-error { padding: 1.5rem; color: var(--text-muted); }
+    .registrations-error { color: #dc2626; }
+    .back-link { display: inline-block; margin-top: 1rem; color: var(--text-secondary); font-size: 0.9375rem; }
+    .back-link:hover { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <a href="sharemelandingpage.html" class="logo">ShareMe</a>
+      <nav class="nav">
+        <a href="sharemedashboard.html" class="link">Dashboard</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="registrations-section">
+      <h1>Registered users</h1>
+      <div id="registrations-content">
+        <p class="registrations-empty">Loading…</p>
+      </div>
+      <a href="sharemelandingpage.html" class="back-link">← Back to home</a>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <p class="footer-brand">ShareMe</p>
+      <nav class="footer-nav">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </nav>
+      <p class="footer-copy">&copy; 2026 ShareMe. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var el = document.getElementById('registrations-content');
+      fetch('/api/registrations')
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.ok || !data.registrations || data.registrations.length === 0) {
+            el.innerHTML = '<p class="registrations-empty">No registrations yet.</p>';
+            return;
+          }
+          var headers = ['id', 'email', 'first_name', 'last_name', 'username', 'phone', 'created_at'];
+          var thead = headers.map(function (h) { return '<th>' + h.replace('_', ' ') + '</th>'; }).join('');
+          var rows = data.registrations.map(function (row) {
+            return '<tr>' + headers.map(function (h) { return '<td>' + (row[h] != null ? row[h] : '') + '</td>'; }).join('') + '</tr>';
+          }).join('');
+          el.innerHTML = '<table class="registrations-table"><thead><tr>' + thead + '</tr></thead><tbody>' + rows + '</tbody></table>';
+        })
+        .catch(function () {
+          el.innerHTML = '<p class="registrations-error">Could not load registrations. Make sure you’re on the same server (e.g. localhost or your Render URL).</p>';
+        });
+    })();
+  </script>
+</body>
+</html>

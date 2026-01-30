@@ -169,6 +169,10 @@
           <p class="form-hint">Passwords must match. Cannot contain parts of the email and must be at least 10 characters long.</p>
         </div>
         <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" required placeholder="Choose a username" autocomplete="username">
+        </div>
+        <div class="form-group">
           <label for="name">Display name</label>
           <input type="text" id="name" name="name" placeholder="How others see you" autocomplete="name">
         </div>
@@ -356,7 +360,37 @@
         }
 
         if (valid) {
-          form.submit();
+          var countryCode = document.getElementById('country-code').value;
+          var firstName = document.getElementById('first-name').value.trim();
+          var lastName = document.getElementById('last-name').value.trim();
+          var username = document.getElementById('username').value.trim();
+          var displayName = document.getElementById('name').value.trim();
+          var payload = {
+            email: email,
+            firstName: firstName || undefined,
+            lastName: lastName || undefined,
+            countryCode: countryCode || undefined,
+            phone: phone,
+            password: password,
+            username: username || undefined,
+            displayName: displayName || undefined
+          };
+          fetch('/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          })
+            .then(function (r) { return r.json().then(function (data) { return { status: r.status, data: data }; }); })
+            .then(function (result) {
+              if (result.data.ok) {
+                window.location.href = 'sharemedashboard.html';
+              } else {
+                showError(phoneError, result.data.error || 'Registration failed. Please try again.');
+              }
+            })
+            .catch(function () {
+              showError(phoneError, 'Unable to reach server. Please try again.');
+            });
         }
       });
     })();
