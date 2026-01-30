@@ -46,10 +46,71 @@ function parseBody(req) {
 }
 
 async function main() {
-  const { insertUser, getUserByEmail, getRecentRegistrations } = await require('./db').initDb();
+  const { insertUser, getUserByEmail, getRecentRegistrations, getUserById, deleteUser, updateUser } = await require('./db').initDb();
 
   const server = http.createServer(async (req, res) => {
     const urlPath = req.url.split('?')[0];
+
+    const usersIdMatch = urlPath.match(/^\/api\/users\/(\d+)$/);
+    if (usersIdMatch) {
+      const id = usersIdMatch[1];
+      if (req.method === 'GET') {
+        try {
+          const user = getUserById(id);
+          if (!user) {
+            sendJson(res, 404, { ok: false, error: 'User not found.' });
+            return;
+          }
+          sendJson(res, 200, { ok: true, user });
+        } catch (e) {
+          console.error(e);
+          sendJson(res, 500, { ok: false, error: 'Failed to fetch user.' });
+        }
+        return;
+      }
+      if (req.method === 'DELETE') {
+        try {
+          const user = getUserById(id);
+          if (!user) {
+            sendJson(res, 404, { ok: false, error: 'User not found.' });
+            return;
+          }
+          deleteUser(id);
+          sendJson(res, 200, { ok: true, message: 'User deleted.' });
+        } catch (e) {
+          console.error(e);
+          sendJson(res, 500, { ok: false, error: 'Failed to delete user.' });
+        }
+        return;
+      }
+      if (req.method === 'PUT') {
+        try {
+          const user = getUserById(id);
+          if (!user) {
+            sendJson(res, 404, { ok: false, error: 'User not found.' });
+            return;
+          }
+          const body = await parseBody(req);
+          const { email, first_name, last_name, phone, username } = body;
+          if (!email || !phone) {
+            sendJson(res, 400, { ok: false, error: 'Email and phone are required.' });
+            return;
+          }
+          updateUser(id, {
+            email: (email || '').trim(),
+            first_name: first_name != null ? String(first_name).trim() : null,
+            last_name: last_name != null ? String(last_name).trim() : null,
+            phone: (phone || '').trim(),
+            username: username != null ? String(username).trim() : null
+          });
+          sendJson(res, 200, { ok: true, message: 'User updated.' });
+        } catch (e) {
+          console.error(e);
+          sendJson(res, 500, { ok: false, error: 'Failed to update user.' });
+        }
+        return;
+      }
+    }
 
     if (req.method === 'GET' && urlPath === '/api/registrations') {
       try {

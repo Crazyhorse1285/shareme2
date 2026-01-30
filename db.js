@@ -42,7 +42,42 @@ async function initDb() {
   }
   save();
 
-  return { insertUser, getUserByEmail, getRecentRegistrations };
+  return { insertUser, getUserByEmail, getRecentRegistrations, getUserById, deleteUser, updateUser };
+}
+
+function getUserById(id) {
+  const stmt = db.prepare('SELECT id, email, first_name, last_name, country_code, phone, username, display_name, created_at FROM users WHERE id = ?');
+  stmt.bind([id]);
+  if (stmt.step()) {
+    const row = stmt.getAsObject();
+    stmt.free();
+    return row;
+  }
+  stmt.free();
+  return null;
+}
+
+function deleteUser(id) {
+  const stmt = db.prepare('DELETE FROM users WHERE id = ?');
+  stmt.run([id]);
+  stmt.free();
+  save();
+}
+
+function updateUser(id, data) {
+  const stmt = db.prepare(
+    'UPDATE users SET email = ?, first_name = ?, last_name = ?, phone = ?, username = ? WHERE id = ?'
+  );
+  stmt.run([
+    data.email || null,
+    data.first_name || null,
+    data.last_name || null,
+    data.phone || null,
+    data.username || null,
+    id
+  ]);
+  stmt.free();
+  save();
 }
 
 function getRecentRegistrations(limit) {

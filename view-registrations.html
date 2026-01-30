@@ -19,6 +19,21 @@
     .registrations-error { color: #dc2626; }
     .back-link { display: inline-block; margin-top: 1rem; color: var(--text-secondary); font-size: 0.9375rem; }
     .back-link:hover { color: var(--accent); }
+    .btn-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .registrations-table .btn { cursor: pointer; font: inherit; border-radius: 8px; font-weight: 500; min-height: 32px; }
+    .registrations-table .btn-small { padding: 0.4rem 0.75rem; font-size: 0.8125rem; }
+    .registrations-table .btn-primary { background: var(--accent); color: #fff; border: none; }
+    .registrations-table .btn-primary:hover { background: var(--accent-hover); color: #fff; }
+    .registrations-table .btn-danger { background: #dc2626; color: #fff; border: none; }
+    .registrations-table .btn-danger:hover { background: #b91c1c; color: #fff; }
+    .edit-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+    .edit-modal.open { display: flex; }
+    .edit-modal-inner { background: var(--bg-card); padding: 1.5rem; border-radius: var(--radius-lg); max-width: 400px; width: 90%; box-shadow: var(--shadow-md); }
+    .edit-modal h2 { margin: 0 0 1rem; font-size: 1.25rem; }
+    .edit-modal .form-group { margin-bottom: 1rem; }
+    .edit-modal label { display: block; font-weight: 500; margin-bottom: 0.25rem; font-size: 0.9rem; }
+    .edit-modal input { width: 100%; padding: 0.5rem 0.75rem; font: inherit; border: 1px solid var(--border); border-radius: var(--radius); }
+    .edit-modal-actions { margin-top: 1.25rem; display: flex; gap: 0.5rem; justify-content: flex-end; }
   </style>
 </head>
 <body>
@@ -39,6 +54,39 @@
       </div>
       <a href="sharemelandingpage.html" class="back-link">← Back to home</a>
     </section>
+
+    <div id="edit-modal" class="edit-modal" aria-hidden="true">
+      <div class="edit-modal-inner">
+        <h2>Edit user</h2>
+        <form id="edit-form">
+          <input type="hidden" id="edit-id" name="id">
+          <div class="form-group">
+            <label for="edit-email">Email</label>
+            <input type="email" id="edit-email" name="email" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-first_name">First name</label>
+            <input type="text" id="edit-first_name" name="first_name">
+          </div>
+          <div class="form-group">
+            <label for="edit-last_name">Last name</label>
+            <input type="text" id="edit-last_name" name="last_name">
+          </div>
+          <div class="form-group">
+            <label for="edit-username">Username</label>
+            <input type="text" id="edit-username" name="username">
+          </div>
+          <div class="form-group">
+            <label for="edit-phone">Phone number</label>
+            <input type="tel" id="edit-phone" name="phone" required>
+          </div>
+          <div class="edit-modal-actions">
+            <button type="button" class="btn btn-secondary btn-small" id="edit-cancel">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-small">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </main>
 
   <footer class="footer">
@@ -56,23 +104,117 @@
   <script>
     (function () {
       var el = document.getElementById('registrations-content');
-      fetch('/api/registrations')
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-          if (!data.ok || !data.registrations || data.registrations.length === 0) {
-            el.innerHTML = '<p class="registrations-empty">No registrations yet.</p>';
-            return;
-          }
-          var headers = ['id', 'email', 'first_name', 'last_name', 'username', 'phone', 'created_at'];
-          var thead = headers.map(function (h) { return '<th>' + h.replace('_', ' ') + '</th>'; }).join('');
-          var rows = data.registrations.map(function (row) {
-            return '<tr>' + headers.map(function (h) { return '<td>' + (row[h] != null ? row[h] : '') + '</td>'; }).join('') + '</tr>';
+      var columns = [
+        { key: 'id', label: 'ID' },
+        { key: 'email', label: 'Email' },
+        { key: 'first_name', label: 'First name' },
+        { key: 'last_name', label: 'Last name' },
+        { key: 'username', label: 'Username' },
+        { key: 'phone', label: 'Phone number' },
+        { key: 'created_at', label: 'Created' },
+        { key: '_actions', label: 'Actions' }
+      ];
+
+      function renderTable(registrations) {
+        if (!registrations || registrations.length === 0) {
+          el.innerHTML = '<p class="registrations-empty">No registrations yet.</p>';
+          return;
+        }
+        var thead = '<tr>' + columns.map(function (c) { return '<th>' + c.label + '</th>'; }).join('') + '</tr>';
+        var rows = registrations.map(function (row) {
+          var cells = columns.map(function (c) {
+            if (c.key === '_actions') {
+              return '<td class="btn-row"><button type="button" class="btn btn-primary btn-small edit-btn" data-id="' + row.id + '">Edit</button><button type="button" class="btn btn-danger btn-small delete-btn" data-id="' + row.id + '">Delete</button></td>';
+            }
+            return '<td>' + (row[c.key] != null && row[c.key] !== '' ? row[c.key] : '—') + '</td>';
           }).join('');
-          el.innerHTML = '<table class="registrations-table"><thead><tr>' + thead + '</tr></thead><tbody>' + rows + '</tbody></table>';
-        })
-        .catch(function () {
-          el.innerHTML = '<p class="registrations-error">Could not load registrations. Make sure you’re on the same server (e.g. localhost or your Render URL).</p>';
+          return '<tr data-id="' + row.id + '">' + cells + '</tr>';
+        }).join('');
+        el.innerHTML = '<table class="registrations-table"><thead>' + thead + '</thead><tbody>' + rows + '</tbody></table>';
+
+        el.querySelectorAll('.delete-btn').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var id = btn.getAttribute('data-id');
+            if (confirm('Delete this user?')) {
+              fetch('/api/users/' + id, { method: 'DELETE' })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                  if (data.ok) { loadRegistrations(); }
+                  else { alert(data.error || 'Delete failed.'); }
+                })
+                .catch(function () { alert('Request failed.'); });
+            }
+          });
         });
+        el.querySelectorAll('.edit-btn').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var id = btn.getAttribute('data-id');
+            fetch('/api/users/' + id)
+              .then(function (r) { return r.json(); })
+              .then(function (data) {
+                if (data.ok && data.user) {
+                  var u = data.user;
+                  document.getElementById('edit-id').value = u.id;
+                  document.getElementById('edit-email').value = u.email || '';
+                  document.getElementById('edit-first_name').value = u.first_name || '';
+                  document.getElementById('edit-last_name').value = u.last_name || '';
+                  document.getElementById('edit-username').value = u.username || '';
+                  document.getElementById('edit-phone').value = u.phone || '';
+                  document.getElementById('edit-modal').classList.add('open');
+                  document.getElementById('edit-modal').setAttribute('aria-hidden', 'false');
+                }
+              })
+              .catch(function () { alert('Could not load user.'); });
+          });
+        });
+      }
+
+      function loadRegistrations() {
+        el.innerHTML = '<p class="registrations-empty">Loading…</p>';
+        fetch('/api/registrations')
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (data.ok && data.registrations) renderTable(data.registrations);
+            else el.innerHTML = '<p class="registrations-empty">No registrations yet.</p>';
+          })
+          .catch(function () {
+            el.innerHTML = '<p class="registrations-error">Could not load registrations. Make sure you’re on the same server (e.g. localhost or your Render URL).</p>';
+          });
+      }
+
+      document.getElementById('edit-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var id = document.getElementById('edit-id').value;
+        var payload = {
+          email: document.getElementById('edit-email').value.trim(),
+          first_name: document.getElementById('edit-first_name').value.trim() || null,
+          last_name: document.getElementById('edit-last_name').value.trim() || null,
+          username: document.getElementById('edit-username').value.trim() || null,
+          phone: document.getElementById('edit-phone').value.trim()
+        };
+        fetch('/api/users/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (data.ok) {
+              document.getElementById('edit-modal').classList.remove('open');
+              document.getElementById('edit-modal').setAttribute('aria-hidden', 'true');
+              loadRegistrations();
+            } else {
+              alert(data.error || 'Update failed.');
+            }
+          })
+          .catch(function () { alert('Request failed.'); });
+      });
+      document.getElementById('edit-cancel').addEventListener('click', function () {
+        document.getElementById('edit-modal').classList.remove('open');
+        document.getElementById('edit-modal').setAttribute('aria-hidden', 'true');
+      });
+
+      loadRegistrations();
     })();
   </script>
 </body>
