@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 const dataDir = path.join(__dirname, 'data');
 const dbPath = path.join(dataDir, 'shareme.db');
@@ -23,7 +24,7 @@ async function initDb() {
 
   db.run(`
     CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id TEXT PRIMARY KEY,
       email TEXT UNIQUE NOT NULL,
       first_name TEXT,
       last_name TEXT,
@@ -37,7 +38,43 @@ async function initDb() {
   `);
   const pragma = db.exec('PRAGMA table_info(users)');
   const columns = pragma[0] && pragma[0].values ? pragma[0].values.map(function (row) { return row[1]; }) : [];
-  if (columns.indexOf('username') === -1) {
+  const idCol = pragma[0] && pragma[0].values ? pragma[0].values.find(function (row) { return row[1] === 'id'; }) : null;
+  const idType = idCol && idCol[2] ? idCol[2].toUpperCase() : '';
+  if (idType === 'INTEGER') {
+    db.run(`
+      CREATE TABLE users_new (
+        id TEXT PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        first_name TEXT,
+        last_name TEXT,
+        country_code TEXT,
+        phone TEXT NOT NULL,
+        password_hash TEXT NOT NULL,
+        display_name TEXT,
+        username TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      )
+    `);
+    const sel = db.prepare('SELECT id, email, first_name, last_name, country_code, phone, password_hash, display_name, username, created_at FROM users');
+    const ins = db.prepare(
+      'INSERT INTO users_new (id, email, first_name, last_name, country_code, phone, password_hash, display_name, username, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    while (sel.step()) {
+      const row = sel.getAsObject();
+      ins.run([crypto.randomUUID(), row.email, row.first_name, row.last_name, row.country_code, row.phone, row.password_hash, row.display_name, row.username, row.created_at]);
+    }
+    sel.free();
+    ins.free();
+    db.run('DROP TABLE users');
+    db.run('ALTER TABLE users_new RENAME TO users');
+    save();
+  }
+  var colsForUsername = columns;
+  if (idType === 'INTEGER') {
+    var pragmaAfter = db.exec('PRAGMA table_info(users)');
+    colsForUsername = pragmaAfter[0] && pragmaAfter[0].values ? pragmaAfter[0].values.map(function (row) { return row[1]; }) : [];
+  }
+  if (colsForUsername.indexOf('username') === -1) {
     db.run('ALTER TABLE users ADD COLUMN username TEXT');
   }
   save();
@@ -103,10 +140,12 @@ function save() {
 }
 
 function insertUser(user) {
+  const id = crypto.randomUUID();
   db.run(
-    `INSERT INTO users (email, first_name, last_name, country_code, phone, password_hash, display_name, username)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO users (id, email, first_name, last_name, country_code, phone, password_hash, display_name, username)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
+      id,
       user.email,
       user.firstName || null,
       user.lastName || null,

@@ -19,7 +19,9 @@
     .registrations-error { color: #dc2626; }
     .back-link { display: inline-block; margin-top: 1rem; color: var(--text-secondary); font-size: 0.9375rem; }
     .back-link:hover { color: var(--accent); }
-    .btn-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .btn-row { display: flex; gap: 0.5rem; align-items: center; white-space: nowrap; }
+    .registrations-table th:last-child,
+    .registrations-table td:last-child { width: 1%; white-space: nowrap; }
     .registrations-table .btn { cursor: pointer; font: inherit; border-radius: 8px; font-weight: 500; min-height: 32px; }
     .registrations-table .btn-small { padding: 0.4rem 0.75rem; font-size: 0.8125rem; }
     .registrations-table .btn-primary { background: var(--accent); color: #fff; border: none; }

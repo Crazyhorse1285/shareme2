@@ -51,7 +51,7 @@ async function main() {
   const server = http.createServer(async (req, res) => {
     const urlPath = req.url.split('?')[0];
 
-    const usersIdMatch = urlPath.match(/^\/api\/users\/(\d+)$/);
+    const usersIdMatch = urlPath.match(/^\/api\/users\/([^/]+)$/);
     if (usersIdMatch) {
       const id = usersIdMatch[1];
       if (req.method === 'GET') {
