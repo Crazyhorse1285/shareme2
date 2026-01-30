@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>View database — ShareMe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .db-section { max-width: 1000px; margin: 2rem auto 4rem; padding: 1.5rem; }
+    .db-section h1 { margin: 0 0 0.5rem; font-size: 1.5rem; color: var(--text-primary); }
+    .db-section p.subtitle { margin: 0 0 1.5rem; color: var(--text-muted); font-size: 0.9375rem; }
+    .db-summary { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 1.5rem; }
+    .db-summary h2 { margin: 0 0 0.5rem; font-size: 1rem; font-weight: 600; color: var(--text-secondary); }
+    .db-summary ul { margin: 0; padding-left: 1.25rem; }
+    .db-summary li { margin: 0.25rem 0; font-size: 0.9375rem; }
+    .db-table-wrap { overflow-x: auto; }
+    .db-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    .db-table th, .db-table td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .db-table th { font-weight: 600; color: var(--text-secondary); background: var(--bg-page); white-space: nowrap; }
+    .db-table tr:hover { background: var(--bg-card); }
+    .db-empty { padding: 1.5rem; color: var(--text-muted); }
+    .back-link { display: inline-block; margin-top: 1rem; color: var(--text-secondary); font-size: 0.9375rem; }
+    .back-link:hover { color: var(--accent); }
+    .status-locked { color: #dc2626; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <a href="sharemelandingpage.html" class="logo">ShareMe</a>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="db-section">
+      <h1>Database contents</h1>
+      <p class="subtitle">All data currently stored in the application database (read-only).</p>
+      <div id="db-content">
+        <p class="db-empty">Loading…</p>
+      </div>
+      <a href="sharemelandingpage.html" class="back-link">← Back to home</a>
+      <a href="view-registrations.html" class="back-link" style="margin-left: 1rem;">View registrations</a>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <p class="footer-brand">ShareMe</p>
+      <nav class="footer-nav">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </nav>
+      <p class="footer-copy">&copy; 2026 ShareMe. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var content = document.getElementById('db-content');
+
+      function setContent(html) {
+        content.innerHTML = html;
+      }
+
+      function cellVal(v) {
+        return (v != null && v !== '') ? String(v) : '—';
+      }
+
+      function isLocked(row) {
+        var until = row.locked_until || row.LOCKED_UNTIL;
+        return until && new Date(until) > new Date();
+      }
+
+      function render(data) {
+        if (!data.ok || !data.tables) {
+          setContent('<p class="db-empty">Could not load database. Make sure the server is running (e.g. localhost:3000).</p>');
+          return;
+        }
+        var summaryHtml = '<div class="db-summary"><h2>Tables</h2><ul>' +
+          data.tables.map(function (t) { return '<li><strong>' + t.name + '</strong>: ' + t.rowCount + ' row(s)</li>'; }).join('') +
+          '</ul></div>';
+        if (!data.users || !data.users.length) {
+          setContent(summaryHtml + '<p class="db-empty">No rows in <strong>users</strong> table yet.</p>');
+          return;
+        }
+        var cols = ['id', 'email', 'first_name', 'last_name', 'username', 'phone', 'created_at', 'locked_until', 'status'];
+        var labels = { id: 'ID', email: 'Email', first_name: 'First name', last_name: 'Last name', username: 'Username', phone: 'Phone', created_at: 'Created', locked_until: 'Locked until', status: 'Status' };
+        var thead = '<tr>' + cols.map(function (c) { return '<th>' + (labels[c] || c) + '</th>'; }).join('') + '</tr>';
+        var rows = data.users.map(function (row) {
+          var locked = isLocked(row);
+          var cells = cols.map(function (c) {
+            if (c === 'status') {
+              return '<td>' + (locked ? '<span class="status-locked">Locked</span>' : '—') + '</td>';
+            }
+            return '<td>' + cellVal(row[c] || row[c.toUpperCase()]) + '</td>';
+          }).join('');
+          return '<tr>' + cells + '</tr>';
+        }).join('');
+        setContent(summaryHtml + '<div class="db-table-wrap"><table class="db-table"><thead>' + thead + '</thead><tbody>' + rows + '</tbody></table></div>');
+      }
+
+      fetch('/api/db?_t=' + Date.now())
+        .then(function (r) { return r.json(); })
+        .then(render)
+        .catch(function () {
+          setContent('<p class="db-empty">Could not load database. Make sure you’re on the same server (e.g. localhost:3000).</p>');
+        });
+    })();
+  </script>
+</body>
+</html>

@@ -165,6 +165,21 @@ async function main() {
       return;
     }
 
+    if (req.method === 'GET' && urlPath === '/api/db') {
+      try {
+        const rows = db.getRecentRegistrations('500');
+        sendJson(res, 200, {
+          ok: true,
+          tables: [{ name: 'users', rowCount: rows.length }],
+          users: rows
+        });
+      } catch (e) {
+        console.error(e);
+        sendJson(res, 500, { ok: false, error: 'Failed to fetch database contents.' });
+      }
+      return;
+    }
+
     if (req.method === 'GET' && urlPath === '/api/me') {
       try {
         const cookies = parseCookies(req);
@@ -290,6 +305,28 @@ async function main() {
       return;
     }
 
+    if (req.method === 'POST' && urlPath === '/api/forgot-password') {
+      try {
+        const body = await parseBody(req);
+        const email = (body.email != null && typeof body.email === 'string') ? String(body.email).trim().toLowerCase() : '';
+        if (!email) {
+          sendJson(res, 400, { ok: false, error: 'Please enter your email.' });
+          return;
+        }
+        const user = db.getAuthUserByEmail(email);
+        if (!user) {
+          sendJson(res, 400, { ok: false, error: 'Email does not exist.' });
+          return;
+        }
+        // TODO: send password-reset email to user.email
+        sendJson(res, 200, { ok: true, message: 'An email will be sent to the address you provided with instructions to reset your password.' });
+      } catch (e) {
+        console.error(e);
+        sendJson(res, 500, { ok: false, error: 'Something went wrong. Please try again.' });
+      }
+      return;
+    }
+
     // Static files
     const fileUrlPath = req.url === '/' ? '/sharemelandingpage.html' : urlPath.replace(/^(\.\.(\/|\\)+)+/, '');
     const relativePath = fileUrlPath.startsWith('/') ? fileUrlPath.slice(1) : fileUrlPath;
@@ -315,6 +352,7 @@ async function main() {
       console.log(`  Landing: http://localhost:${port}/sharemelandingpage.html`);
       console.log(`  Register: http://localhost:${port}/createuser.html`);
       console.log(`  Dashboard: http://localhost:${port}/sharemedashboard.html`);
+      console.log(`  Forgot password: http://localhost:${port}/forgot-password.html`);
       console.log('Press Ctrl+C to stop.');
     }).on('error', (err) => {
       if (err.code === 'EADDRINUSE' && port < 3010) {

@@ -395,3 +395,6 @@ body {
 .login-modal input { width: 100%; padding: 0.5rem 0.75rem; font: inherit; border: 1px solid var(--border); border-radius: var(--radius); }
 .login-modal-actions { margin-top: 1.25rem; display: flex; gap: 0.5rem; justify-content: flex-end; }
 .login-modal .form-error { color: #dc2626; font-size: 0.875rem; margin-top: 0.25rem; }
+.login-forgot-wrap { margin: 0.75rem 0 0; font-size: 0.9rem; }
+.login-forgot-wrap a { color: var(--primary, #2563eb); text-decoration: none; }
+.login-forgot-wrap a:hover { text-decoration: underline; }

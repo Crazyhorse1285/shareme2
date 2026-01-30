@@ -79,6 +79,7 @@
           <input type="password" id="login-password" name="password" required placeholder="Your password" autocomplete="current-password">
         </div>
         <p class="form-error" id="login-error" role="alert" style="display: none;"></p>
+        <p id="login-forgot-wrap" class="login-forgot-wrap" style="display: none;" aria-hidden="true"></p>
         <div class="login-modal-actions">
           <button type="button" class="btn btn-secondary btn-small" id="login-cancel">Cancel</button>
           <button type="submit" class="btn btn-primary btn-small">Log in</button>
@@ -106,6 +107,8 @@
       var loginModal = document.getElementById('login-modal');
       var loginError = document.getElementById('login-error');
       var loginForm = document.getElementById('login-form');
+      var loginForgotWrap = document.getElementById('login-forgot-wrap');
+      var failedLoginAttempts = 0;
 
       function displayName(user) {
         return (user.display_name || user.first_name || user.username || user.email || 'User').trim() || 'User';
@@ -119,6 +122,12 @@
       document.getElementById('nav-login-btn').addEventListener('click', function (e) {
         e.preventDefault();
         showLoginError('');
+        failedLoginAttempts = 0;
+        loginForgotWrap.style.display = 'none';
+        loginForgotWrap.setAttribute('aria-hidden', 'true');
+        if (loginForgotWrap.querySelector('a')) {
+          loginForgotWrap.removeChild(loginForgotWrap.firstChild);
+        }
         loginForm.reset();
         loginModal.classList.add('open');
         loginModal.setAttribute('aria-hidden', 'false');
@@ -129,6 +138,7 @@
         loginModal.setAttribute('aria-hidden', 'true');
         showLoginError('');
       });
+
 
       function sha256Hex(str) {
         return crypto.subtle.digest('SHA-256', new TextEncoder().encode(str))
@@ -164,6 +174,18 @@
               if (result.data.ok) {
                 window.location.href = 'sharemedashboard.html';
               } else {
+                failedLoginAttempts += 1;
+                if (failedLoginAttempts >= 3) {
+                  if (!loginForgotWrap.querySelector('a')) {
+                    var a = document.createElement('a');
+                    a.href = 'forgot-password.html';
+                    a.id = 'login-forgot-link';
+                    a.textContent = 'Forgot Password?';
+                    loginForgotWrap.appendChild(a);
+                  }
+                  loginForgotWrap.style.display = 'block';
+                  loginForgotWrap.setAttribute('aria-hidden', 'false');
+                }
                 var msg = result.data.error || 'Invalid email or password.';
                 if (result.status === 423) {
                   msg = result.data.error || 'Account locked. Try again in 5 minutes.';
