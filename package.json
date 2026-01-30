@@ -1,0 +1,12 @@
+{
+  "name": "shareme",
+  "version": "1.0.0",
+  "description": "ShareMe static site",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "sql.js": "^1.11.0"
+  }
+}
