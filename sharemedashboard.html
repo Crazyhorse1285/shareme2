@@ -80,7 +80,12 @@
             navGuest.style.display = 'none';
             navAuth.style.display = '';
             displayNameEl.textContent = displayName(data.user);
+          } else {
+            window.location.replace('sharemelandingpage.html');
           }
+        })
+        .catch(function () {
+          window.location.replace('sharemelandingpage.html');
         });
 
       document.getElementById('nav-logout').addEventListener('click', function (e) {
