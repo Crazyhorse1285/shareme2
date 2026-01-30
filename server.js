@@ -178,15 +178,19 @@ async function main() {
     if (req.method === 'POST' && urlPath === '/api/login') {
       try {
         const body = await parseBody(req);
-        const { email, password, passwordHash } = body;
-        const emailTrim = (email || '').trim();
+        const { email, emailHash, password, passwordHash } = body;
         const hasHash = typeof passwordHash === 'string' && passwordHash.length === 64;
         const hasPassword = typeof password === 'string' && password.length > 0;
-        if (!emailTrim || (!hasHash && !hasPassword)) {
+        const hasEmailHash = typeof emailHash === 'string' && emailHash.length === 64 && /^[a-f0-9]+$/i.test(emailHash);
+        const emailTrim = (email != null && typeof email === 'string') ? String(email).trim() : '';
+        const hasEmail = emailTrim.length > 0;
+        if ((!hasEmailHash && !hasEmail) || (!hasHash && !hasPassword)) {
           sendJson(res, 400, { ok: false, error: 'Email and password are required.' });
           return;
         }
-        const authUser = db.getAuthUserByEmail(emailTrim);
+        const authUser = hasEmailHash
+          ? db.getAuthUserByEmailHash(emailHash.toLowerCase())
+          : db.getAuthUserByEmail(emailTrim);
         const storedHash = authUser && (authUser.password_hash || authUser.PASSWORD_HASH);
         if (!authUser || !storedHash) {
           sendJson(res, 401, { ok: false, error: 'Invalid email or password.' });

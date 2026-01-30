@@ -149,12 +149,15 @@
           showLoginError('Email and password are required.');
           return;
         }
-        sha256Hex(password).then(function (passwordHash) {
+        var emailNormalized = email.toLowerCase();
+        Promise.all([sha256Hex(emailNormalized), sha256Hex(password)]).then(function (hashes) {
+          var emailHash = hashes[0];
+          var passwordHash = hashes[1];
           fetch('/api/login', {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: email, passwordHash: passwordHash })
+            body: JSON.stringify({ emailHash: emailHash, passwordHash: passwordHash })
           })
             .then(function (r) { return r.json().then(function (data) { return { status: r.status, data: data }; }); })
             .then(function (result) {
