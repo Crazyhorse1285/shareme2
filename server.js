@@ -214,32 +214,44 @@ async function main() {
     if (req.method === 'POST' && urlPath === '/api/register') {
       try {
         const body = await parseBody(req);
-        const { email, firstName, lastName, countryCode, phone, password, passwordHash, username, displayName } = body;
-        const hasHash = typeof passwordHash === 'string' && passwordHash.length === 64;
-        const hasPassword = typeof password === 'string' && password.length > 0;
-        if (!email || !phone || (!hasHash && !hasPassword)) {
+        if (!body || typeof body !== 'object') {
+          sendJson(res, 400, { ok: false, error: 'Invalid request body.' });
+          return;
+        }
+        const emailTrim = String(body.email ?? body.Email ?? '').trim();
+        const phoneTrim = String(body.phone ?? body.Phone ?? '').trim();
+        const hashStr = String(body.passwordHash ?? body.PasswordHash ?? '').trim();
+        const plainPassword = body.password;
+        const hasHash = hashStr.length === 64 && /^[a-f0-9]+$/i.test(hashStr);
+        const hasPassword = typeof plainPassword === 'string' && plainPassword.length > 0;
+        if (!emailTrim || !phoneTrim || (!hasHash && !hasPassword)) {
           sendJson(res, 400, { ok: false, error: 'Email, phone, and password are required.' });
           return;
         }
-        if (db.getUserByEmail(email)) {
+        if (db.getUserByEmail(emailTrim)) {
           sendJson(res, 409, { ok: false, error: 'An account with this email already exists.' });
           return;
         }
-        const toStore = hasHash ? hashPassword(passwordHash) : hashPassword(password);
+        const firstName = body.firstName ?? body.first_name;
+        const lastName = body.lastName ?? body.last_name;
+        const countryCode = body.countryCode ?? body.country_code;
+        const username = body.username;
+        const displayName = body.displayName ?? body.display_name;
+        const toStore = hasHash ? hashPassword(hashStr) : hashPassword(plainPassword);
         const userId = db.insertUser({
-          email: email.trim(),
-          firstName: firstName ? firstName.trim() : null,
-          lastName: lastName ? lastName.trim() : null,
-          countryCode: countryCode || null,
-          phone: phone.trim(),
+          email: emailTrim,
+          firstName: firstName != null ? String(firstName).trim() : null,
+          lastName: lastName != null ? String(lastName).trim() : null,
+          countryCode: countryCode != null ? String(countryCode).trim() : null,
+          phone: phoneTrim,
           passwordHash: toStore,
-          username: username ? username.trim() : null,
-          displayName: displayName ? displayName.trim() : null
+          username: username != null ? String(username).trim() : null,
+          displayName: displayName != null ? String(displayName).trim() : null
         });
         const sessionId = crypto.randomBytes(24).toString('hex');
         sessions.set(sessionId, { userId });
         setSessionCookie(res, sessionId);
-        console.log('User registered:', email.trim());
+        console.log('User registered:', emailTrim);
         sendJson(res, 201, { ok: true, message: 'Account created successfully.' });
       } catch (e) {
         console.error(e);

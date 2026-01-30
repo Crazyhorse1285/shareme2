@@ -233,7 +233,7 @@
       }
 
       function isPasswordValid(password, email) {
-        if (!password || password.length !== 10) return false;
+        if (!password || password.length < 10) return false;
         if (!email) return true;
         var emailLower = email.toLowerCase();
         var passwordLower = password.toLowerCase();
@@ -348,7 +348,7 @@
         }
 
         if (!isPasswordValid(password, email)) {
-          showError(passwordError, 'Password is invalid.');
+          showError(passwordError, 'Password must be at least 10 characters and cannot contain your email or the part before @.');
           setInputError(passwordInput, true);
           valid = false;
         }

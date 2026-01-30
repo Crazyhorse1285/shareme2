@@ -8,6 +8,7 @@ const dbPath = path.join(dataDir, 'shareme.db');
 const USERS_SCHEMA = `
   id TEXT PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
+  email_hash TEXT,
   first_name TEXT,
   last_name TEXT,
   country_code TEXT,
@@ -17,6 +18,13 @@ const USERS_SCHEMA = `
   username TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 `;
+
+function emailToHash(email) {
+  if (!email || typeof email !== 'string') return null;
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return null;
+  return crypto.createHash('sha256').update(normalized, 'utf8').digest('hex');
+}
 
 let db = null;
 
@@ -95,8 +103,21 @@ async function initDb() {
     db.run('ALTER TABLE users ADD COLUMN username TEXT');
     save();
   }
+  if (columns.indexOf('email_hash') === -1) {
+    db.run('ALTER TABLE users ADD COLUMN email_hash TEXT');
+  }
+  var needBackfill = queryOne('SELECT 1 FROM users WHERE email_hash IS NULL AND email IS NOT NULL AND email != \'\'');
+  if (needBackfill) {
+    const all = queryAll('SELECT id, email FROM users WHERE email_hash IS NULL');
+    for (let i = 0; i < all.length; i++) {
+      const row = all[i];
+      const hash = emailToHash(row.email);
+      if (hash) runSql('UPDATE users SET email_hash = ? WHERE id = ?', [hash, row.id]);
+    }
+    save();
+  }
 
-  return { insertUser, getUserByEmail, getAuthUserByEmail, getRecentRegistrations, getUserById, deleteUser, updateUser };
+  return { insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, getRecentRegistrations, getUserById, deleteUser, updateUser };
 }
 
 function getUserById(id) {
@@ -108,9 +129,10 @@ function deleteUser(id) {
 }
 
 function updateUser(id, data) {
+  const emailHash = data.email ? emailToHash(data.email) : null;
   runSql(
-    'UPDATE users SET email = ?, first_name = ?, last_name = ?, phone = ?, username = ? WHERE id = ?',
-    [data.email || null, data.first_name || null, data.last_name || null, data.phone || null, data.username || null, id]
+    'UPDATE users SET email = ?, email_hash = ?, first_name = ?, last_name = ?, phone = ?, username = ? WHERE id = ?',
+    [data.email || null, emailHash, data.first_name || null, data.last_name || null, data.phone || null, data.username || null, id]
   );
 }
 
@@ -121,9 +143,10 @@ function getRecentRegistrations(limit) {
 
 function insertUser(user) {
   const id = crypto.randomUUID();
+  const emailHash = emailToHash(user.email);
   db.run(
-    'INSERT INTO users (id, email, first_name, last_name, country_code, phone, password_hash, display_name, username) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [id, user.email, user.firstName || null, user.lastName || null, user.countryCode || null, user.phone, user.passwordHash, user.displayName || null, user.username || null]
+    'INSERT INTO users (id, email, email_hash, first_name, last_name, country_code, phone, password_hash, display_name, username) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [id, user.email, emailHash, user.firstName || null, user.lastName || null, user.countryCode || null, user.phone, user.passwordHash, user.displayName || null, user.username || null]
   );
   save();
   return id;
@@ -140,4 +163,9 @@ function getAuthUserByEmail(email) {
   return queryOne('SELECT id, email, password_hash FROM users WHERE LOWER(email) = ?', [trimmed]);
 }
 
-module.exports = { initDb, insertUser, getUserByEmail, getAuthUserByEmail };
+function getAuthUserByEmailHash(emailHash) {
+  if (!emailHash || typeof emailHash !== 'string' || emailHash.length !== 64 || !/^[a-f0-9]+$/i.test(emailHash)) return null;
+  return queryOne('SELECT id, email, password_hash FROM users WHERE email_hash = ?', [emailHash.toLowerCase()]);
+}
+
+module.exports = { initDb, insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, emailToHash };
