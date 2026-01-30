@@ -126,6 +126,7 @@ function insertUser(user) {
     [id, user.email, user.firstName || null, user.lastName || null, user.countryCode || null, user.phone, user.passwordHash, user.displayName || null, user.username || null]
   );
   save();
+  return id;
 }
 
 function getUserByEmail(email) {

@@ -13,12 +13,17 @@
   <header class="header">
     <div class="header-inner">
       <a href="sharemelandingpage.html" class="logo">ShareMe</a>
-      <nav class="nav">
-        <a href="#" class="btn btn-primary">Login</a>
-        <span class="nav-divider" aria-hidden="true">|</span>
-        <p class="signup-text">
-          Not a user, <a href="createuser.html" class="link">sign up here</a>
-        </p>
+      <nav class="nav" id="nav">
+        <span id="nav-guest">
+          <a href="#" class="btn btn-primary">Login</a>
+          <span class="nav-divider" aria-hidden="true">|</span>
+          <span class="signup-text">Not a user, <a href="createuser.html" class="link">sign up here</a></span>
+        </span>
+        <span id="nav-auth" style="display: none;">
+          <span class="nav-greeting">Hello, <span id="user-display-name"></span></span>
+          <span class="nav-divider" aria-hidden="true">|</span>
+          <a href="#" id="nav-logout" class="link">Logout</a>
+        </span>
       </nav>
     </div>
   </header>
@@ -57,24 +62,49 @@
     </div>
   </footer>
   <script>
-    var qrBase = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&bgcolor=F8FAFC&color=334155&data=';
-    var qrImg = document.getElementById('dashboard-qr');
+    (function () {
+      var qrBase = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&bgcolor=F8FAFC&color=334155&data=';
+      var qrImg = document.getElementById('dashboard-qr');
+      var navGuest = document.getElementById('nav-guest');
+      var navAuth = document.getElementById('nav-auth');
+      var displayNameEl = document.getElementById('user-display-name');
 
-    function setQrFor(profile) {
-      var data = 'ShareMe-' + profile.charAt(0).toUpperCase() + profile.slice(1);
-      qrImg.src = qrBase + encodeURIComponent(data);
-      qrImg.alt = 'QR code for ' + profile + ' profile';
-    }
+      function displayName(user) {
+        return (user.display_name || user.first_name || user.username || user.email || 'User').trim() || 'User';
+      }
 
-    document.querySelectorAll('.btn-funnel').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        document.querySelectorAll('.btn-funnel').forEach(function(b) { b.classList.remove('selected'); });
-        this.classList.add('selected');
-        setQrFor(this.getAttribute('data-funnel'));
+      fetch('/api/me', { credentials: 'include' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.ok && data.user) {
+            navGuest.style.display = 'none';
+            navAuth.style.display = '';
+            displayNameEl.textContent = displayName(data.user);
+          }
+        });
+
+      document.getElementById('nav-logout').addEventListener('click', function (e) {
+        e.preventDefault();
+        fetch('/api/logout', { method: 'POST', credentials: 'include' })
+          .then(function () { window.location.href = 'sharemelandingpage.html'; });
       });
-    });
 
-    setQrFor('personal');
+      function setQrFor(profile) {
+        var data = 'ShareMe-' + profile.charAt(0).toUpperCase() + profile.slice(1);
+        qrImg.src = qrBase + encodeURIComponent(data);
+        qrImg.alt = 'QR code for ' + profile + ' profile';
+      }
+
+      document.querySelectorAll('.btn-funnel').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          document.querySelectorAll('.btn-funnel').forEach(function (b) { b.classList.remove('selected'); });
+          this.classList.add('selected');
+          setQrFor(this.getAttribute('data-funnel'));
+        });
+      });
+
+      setQrFor('personal');
+    })();
   </script>
 </body>
 </html>

@@ -4,12 +4,32 @@ const path = require('path');
 const crypto = require('crypto');
 
 const PORT = Number(process.env.PORT) || 3000;
+const SESSION_COOKIE = 'shareme_session';
 const MIME_TYPES = {
   '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript',
   '.json': 'application/json', '.ico': 'image/x-icon', '.png': 'image/png',
   '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif',
   '.svg': 'image/svg+xml', '.woff': 'font/woff', '.woff2': 'font/woff2'
 };
+
+const sessions = new Map();
+
+function parseCookies(req) {
+  const raw = req.headers.cookie || '';
+  return raw.split(';').reduce(function (acc, part) {
+    const i = part.indexOf('=');
+    if (i !== -1) acc[part.slice(0, i).trim()] = part.slice(i + 1).trim();
+    return acc;
+  }, {});
+}
+
+function setSessionCookie(res, sessionId) {
+  res.setHeader('Set-Cookie', SESSION_COOKIE + '=' + sessionId + '; Path=/; HttpOnly; SameSite=Lax');
+}
+
+function clearSessionCookie(res) {
+  res.setHeader('Set-Cookie', SESSION_COOKIE + '=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+}
 
 function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString('hex');
@@ -112,6 +132,34 @@ async function main() {
       return;
     }
 
+    if (req.method === 'GET' && urlPath === '/api/me') {
+      try {
+        const cookies = parseCookies(req);
+        const sessionId = cookies[SESSION_COOKIE];
+        const session = sessionId && sessions.get(sessionId);
+        const userId = session && session.userId;
+        const user = userId ? db.getUserById(userId) : null;
+        if (!user) {
+          sendJson(res, 200, { ok: false, user: null });
+          return;
+        }
+        sendJson(res, 200, { ok: true, user: { id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name, display_name: user.display_name, username: user.username } });
+      } catch (e) {
+        console.error(e);
+        sendJson(res, 500, { ok: false, user: null });
+      }
+      return;
+    }
+
+    if (req.method === 'POST' && urlPath === '/api/logout') {
+      const cookies = parseCookies(req);
+      const sessionId = cookies[SESSION_COOKIE];
+      if (sessionId) sessions.delete(sessionId);
+      clearSessionCookie(res);
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+
     if (req.method === 'POST' && urlPath === '/api/register') {
       try {
         const body = await parseBody(req);
@@ -124,7 +172,7 @@ async function main() {
           sendJson(res, 409, { ok: false, error: 'An account with this email already exists.' });
           return;
         }
-        db.insertUser({
+        const userId = db.insertUser({
           email: email.trim(),
           firstName: firstName ? firstName.trim() : null,
           lastName: lastName ? lastName.trim() : null,
@@ -134,6 +182,9 @@ async function main() {
           username: username ? username.trim() : null,
           displayName: displayName ? displayName.trim() : null
         });
+        const sessionId = crypto.randomBytes(24).toString('hex');
+        sessions.set(sessionId, { userId });
+        setSessionCookie(res, sessionId);
         console.log('User registered:', email.trim());
         sendJson(res, 201, { ok: true, message: 'Account created successfully.' });
       } catch (e) {
