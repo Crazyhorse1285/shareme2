@@ -96,7 +96,7 @@ async function initDb() {
     save();
   }
 
-  return { insertUser, getUserByEmail, getAuthUserByEmail, getRecentRegistrations, getUserById, deleteUser, updateUser, updatePasswordHash };
+  return { insertUser, getUserByEmail, getAuthUserByEmail, getRecentRegistrations, getUserById, deleteUser, updateUser };
 }
 
 function getUserById(id) {
@@ -112,10 +112,6 @@ function updateUser(id, data) {
     'UPDATE users SET email = ?, first_name = ?, last_name = ?, phone = ?, username = ? WHERE id = ?',
     [data.email || null, data.first_name || null, data.last_name || null, data.phone || null, data.username || null, id]
   );
-}
-
-function updatePasswordHash(userId, passwordHash) {
-  runSql('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, userId]);
 }
 
 function getRecentRegistrations(limit) {
