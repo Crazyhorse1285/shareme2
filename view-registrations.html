@@ -84,6 +84,7 @@
         { key: 'username', label: 'Username' },
         { key: 'phone', label: 'Phone number' },
         { key: 'created_at', label: 'Created' },
+        { key: 'locked_status', label: 'Status' },
         { key: '_actions', label: 'Actions' }
       ];
 
@@ -126,10 +127,19 @@
           return;
         }
         var thead = '<tr>' + columns.map(function (c) { return '<th>' + c.label + '</th>'; }).join('') + '</tr>';
+        function isLocked(row) {
+          var until = row.locked_until || row.LOCKED_UNTIL;
+          return until && new Date(until) > new Date();
+        }
         var rows = registrations.map(function (row) {
+          var locked = isLocked(row);
           var cells = columns.map(function (c) {
             if (c.key === '_actions') {
-              return '<td class="btn-row"><button type="button" class="btn btn-primary btn-small edit-btn" data-id="' + row.id + '">Edit</button><button type="button" class="btn btn-danger btn-small delete-btn" data-id="' + row.id + '">Delete</button></td>';
+              var unlockBtn = locked ? '<button type="button" class="btn btn-secondary btn-small unlock-btn" data-id="' + row.id + '" title="Clear login lock so user can sign in again">Unlock</button>' : '';
+              return '<td class="btn-row"><button type="button" class="btn btn-primary btn-small edit-btn" data-id="' + row.id + '">Edit</button><button type="button" class="btn btn-danger btn-small delete-btn" data-id="' + row.id + '">Delete</button>' + unlockBtn + '</td>';
+            }
+            if (c.key === 'locked_status') {
+              return '<td>' + (locked ? '<span class="status-locked">Locked</span>' : '—') + '</td>';
             }
             return '<td>' + cellVal(row, c.key) + '</td>';
           }).join('');
@@ -139,9 +149,16 @@
       }
 
       content.addEventListener('click', function (e) {
-        var btn = e.target.closest('.edit-btn, .delete-btn');
+        var btn = e.target.closest('.edit-btn, .delete-btn, .unlock-btn');
         if (!btn) return;
         var id = btn.getAttribute('data-id');
+        if (btn.classList.contains('unlock-btn')) {
+          api('POST', '/api/users/' + id + '/unlock').then(function (data) {
+            if (data.ok) loadRegistrations();
+            else alert(data.error || 'Unlock failed.');
+          }).catch(function () { alert('Request failed.'); });
+          return;
+        }
         if (btn.classList.contains('delete-btn')) {
           if (!confirm('Delete this user?')) return;
           api('DELETE', '/api/users/' + id).then(function (data) {

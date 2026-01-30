@@ -164,7 +164,11 @@
               if (result.data.ok) {
                 window.location.href = 'sharemedashboard.html';
               } else {
-                showLoginError(result.data.error || 'Invalid email or password.');
+                var msg = result.data.error || 'Invalid email or password.';
+                if (result.status === 423) {
+                  msg = result.data.error || 'Account locked. Try again in 5 minutes.';
+                }
+                showLoginError(msg);
               }
             })
             .catch(function () {

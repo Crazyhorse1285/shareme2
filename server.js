@@ -79,7 +79,25 @@ async function main() {
 
   const server = http.createServer(async (req, res) => {
     const urlPath = req.url.split('?')[0];
+    const usersUnlockMatch = urlPath.match(/^\/api\/users\/([^/]+)\/unlock$/);
     const usersIdMatch = urlPath.match(/^\/api\/users\/([^/]+)$/);
+
+    if (usersUnlockMatch && req.method === 'POST') {
+      const id = usersUnlockMatch[1];
+      try {
+        const user = db.getUserById(id);
+        if (!user) {
+          sendJson(res, 404, { ok: false, error: 'User not found.' });
+          return;
+        }
+        db.clearLoginLock(id);
+        sendJson(res, 200, { ok: true, message: 'User unlocked. They can try to log in again.' });
+      } catch (e) {
+        console.error(e);
+        sendJson(res, 500, { ok: false, error: 'Failed to unlock user.' });
+      }
+      return;
+    }
 
     if (usersIdMatch) {
       const id = usersIdMatch[1];
@@ -196,14 +214,22 @@ async function main() {
           sendJson(res, 401, { ok: false, error: 'Invalid email or password.' });
           return;
         }
+        const lockedUntil = authUser.locked_until || authUser.LOCKED_UNTIL;
+        if (lockedUntil && new Date(lockedUntil) > new Date()) {
+          const mins = Math.ceil((new Date(lockedUntil) - new Date()) / 60000);
+          sendJson(res, 423, { ok: false, error: 'Account locked. Try again in ' + mins + ' minute' + (mins !== 1 ? 's' : '') + '.' });
+          return;
+        }
         let verified = hasHash && verifyPassword(passwordHash, storedHash);
         if (!verified && hasPassword) {
           verified = verifyPassword(password, storedHash);
         }
         if (!verified) {
+          db.recordFailedLogin(authUser.id);
           sendJson(res, 401, { ok: false, error: 'Invalid email or password.' });
           return;
         }
+        db.clearLoginLock(authUser.id);
         const sessionId = crypto.randomBytes(24).toString('hex');
         sessions.set(sessionId, { userId: authUser.id });
         setSessionCookie(res, sessionId);

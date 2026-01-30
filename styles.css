@@ -375,6 +375,9 @@ body {
 .registrations-table .btn-primary:hover { background: var(--accent-hover); color: #fff; }
 .registrations-table .btn-danger { background: #dc2626; color: #fff; border: none; }
 .registrations-table .btn-danger:hover { background: #b91c1c; color: #fff; }
+.registrations-table .btn-secondary { background: var(--text-secondary); color: #fff; border: none; }
+.registrations-table .btn-secondary:hover { background: var(--text-primary); color: #fff; }
+.status-locked { color: #dc2626; font-weight: 600; }
 .edit-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
 .edit-modal.open { display: flex; }
 .edit-modal-inner { background: var(--bg-card); padding: 1.5rem; border-radius: var(--radius-lg); max-width: 400px; width: 90%; box-shadow: var(--shadow-md); }

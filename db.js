@@ -116,8 +116,17 @@ async function initDb() {
     }
     save();
   }
+  var currentCols = db.exec('PRAGMA table_info(users)')[0].values.map(function (r) { return r[1]; });
+  if (currentCols.indexOf('failed_login_attempts') === -1) {
+    db.run('ALTER TABLE users ADD COLUMN failed_login_attempts INTEGER NOT NULL DEFAULT 0');
+    save();
+  }
+  if (currentCols.indexOf('locked_until') === -1) {
+    db.run('ALTER TABLE users ADD COLUMN locked_until TEXT');
+    save();
+  }
 
-  return { insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, getRecentRegistrations, getUserById, deleteUser, updateUser };
+  return { insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, getRecentRegistrations, getUserById, deleteUser, updateUser };
 }
 
 function getUserById(id) {
@@ -138,7 +147,7 @@ function updateUser(id, data) {
 
 function getRecentRegistrations(limit) {
   const n = Math.min(Number(limit) || 50, 100);
-  return queryAll('SELECT id, email, first_name, last_name, username, phone, created_at FROM users ORDER BY created_at DESC LIMIT ?', [n]);
+  return queryAll('SELECT id, email, first_name, last_name, username, phone, created_at, locked_until FROM users ORDER BY created_at DESC LIMIT ?', [n]);
 }
 
 function insertUser(user) {
@@ -160,12 +169,31 @@ function getAuthUserByEmail(email) {
   if (!email || typeof email !== 'string') return null;
   var trimmed = email.trim().toLowerCase();
   if (!trimmed) return null;
-  return queryOne('SELECT id, email, password_hash FROM users WHERE LOWER(email) = ?', [trimmed]);
+  return queryOne('SELECT id, email, password_hash, failed_login_attempts, locked_until FROM users WHERE LOWER(email) = ?', [trimmed]);
 }
 
 function getAuthUserByEmailHash(emailHash) {
   if (!emailHash || typeof emailHash !== 'string' || emailHash.length !== 64 || !/^[a-f0-9]+$/i.test(emailHash)) return null;
-  return queryOne('SELECT id, email, password_hash FROM users WHERE email_hash = ?', [emailHash.toLowerCase()]);
+  return queryOne('SELECT id, email, password_hash, failed_login_attempts, locked_until FROM users WHERE email_hash = ?', [emailHash.toLowerCase()]);
 }
 
-module.exports = { initDb, insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, emailToHash };
+const LOCKOUT_ATTEMPTS = 5;
+const LOCKOUT_MINUTES = 5;
+
+function recordFailedLogin(userId) {
+  const user = queryOne('SELECT failed_login_attempts FROM users WHERE id = ?', [userId]);
+  if (!user) return;
+  const attempts = (user.failed_login_attempts || 0) + 1;
+  if (attempts >= LOCKOUT_ATTEMPTS) {
+    const lockedUntil = new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000).toISOString();
+    runSql('UPDATE users SET failed_login_attempts = ?, locked_until = ? WHERE id = ?', [attempts, lockedUntil, userId]);
+  } else {
+    runSql('UPDATE users SET failed_login_attempts = ? WHERE id = ?', [attempts, userId]);
+  }
+}
+
+function clearLoginLock(userId) {
+  runSql('UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = ?', [userId]);
+}
+
+module.exports = { initDb, insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, emailToHash };
