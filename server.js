@@ -48,6 +48,10 @@ function verifyPassword(plainPassword, storedHash) {
   return crypto.timingSafeEqual(a, b);
 }
 
+function sha256Hex(str) {
+  return crypto.createHash('sha256').update(str, 'utf8').digest('hex');
+}
+
 function sendJson(res, status, data) {
   res.writeHead(status, {
     'Content-Type': 'application/json',
@@ -178,14 +182,29 @@ async function main() {
     if (req.method === 'POST' && urlPath === '/api/login') {
       try {
         const body = await parseBody(req);
-        const { email, password } = body;
-        if (!email || !password) {
+        const { email, password, passwordHash } = body;
+        const emailTrim = (email || '').trim();
+        if (!emailTrim || (!passwordHash && !password)) {
           sendJson(res, 400, { ok: false, error: 'Email and password are required.' });
           return;
         }
-        const authUser = db.getAuthUserByEmail((email || '').trim());
+        const authUser = db.getAuthUserByEmail(emailTrim);
         const storedHash = authUser && (authUser.password_hash || authUser.PASSWORD_HASH);
-        if (!authUser || !storedHash || !verifyPassword(password, storedHash)) {
+        if (!authUser || !storedHash) {
+          sendJson(res, 401, { ok: false, error: 'Invalid email or password.' });
+          return;
+        }
+        let verified = false;
+        if (passwordHash && typeof passwordHash === 'string') {
+          verified = verifyPassword(passwordHash, storedHash);
+        }
+        if (!verified && password) {
+          verified = verifyPassword(password, storedHash);
+          if (verified) {
+            db.updatePasswordHash(authUser.id, hashPassword(sha256Hex(password)));
+          }
+        }
+        if (!verified) {
           sendJson(res, 401, { ok: false, error: 'Invalid email or password.' });
           return;
         }
@@ -203,8 +222,9 @@ async function main() {
     if (req.method === 'POST' && urlPath === '/api/register') {
       try {
         const body = await parseBody(req);
-        const { email, firstName, lastName, countryCode, phone, password, username, displayName } = body;
-        if (!email || !phone || !password) {
+        const { email, firstName, lastName, countryCode, phone, password, passwordHash, username, displayName } = body;
+        const pwd = passwordHash || password;
+        if (!email || !phone || !pwd) {
           sendJson(res, 400, { ok: false, error: 'Email, phone, and password are required.' });
           return;
         }
@@ -212,13 +232,14 @@ async function main() {
           sendJson(res, 409, { ok: false, error: 'An account with this email already exists.' });
           return;
         }
+        const toStore = typeof passwordHash === 'string' ? hashPassword(passwordHash) : hashPassword(password);
         const userId = db.insertUser({
           email: email.trim(),
           firstName: firstName ? firstName.trim() : null,
           lastName: lastName ? lastName.trim() : null,
           countryCode: countryCode || null,
           phone: phone.trim(),
-          passwordHash: hashPassword(password),
+          passwordHash: toStore,
           username: username ? username.trim() : null,
           displayName: displayName ? displayName.trim() : null
         });
