@@ -96,7 +96,7 @@ async function initDb() {
     save();
   }
 
-  return { insertUser, getUserByEmail, getRecentRegistrations, getUserById, deleteUser, updateUser };
+  return { insertUser, getUserByEmail, getAuthUserByEmail, getRecentRegistrations, getUserById, deleteUser, updateUser };
 }
 
 function getUserById(id) {
@@ -133,4 +133,11 @@ function getUserByEmail(email) {
   return queryOne('SELECT id, email FROM users WHERE email = ?', [email]);
 }
 
-module.exports = { initDb, insertUser, getUserByEmail };
+function getAuthUserByEmail(email) {
+  if (!email || typeof email !== 'string') return null;
+  var trimmed = email.trim().toLowerCase();
+  if (!trimmed) return null;
+  return queryOne('SELECT id, email, password_hash FROM users WHERE LOWER(email) = ?', [trimmed]);
+}
+
+module.exports = { initDb, insertUser, getUserByEmail, getAuthUserByEmail };

@@ -15,7 +15,7 @@
       <a href="sharemelandingpage.html" class="logo">ShareMe</a>
       <nav class="nav" id="nav">
         <span id="nav-guest">
-          <a href="#" class="btn btn-primary">Login</a>
+          <a href="#" id="nav-login-btn" class="btn btn-primary">Login</a>
           <span class="nav-divider" aria-hidden="true">|</span>
           <span class="signup-text">Not a user, <a href="createuser.html" class="link">sign up here</a></span>
         </span>
@@ -66,6 +66,27 @@
     </section>
   </main>
 
+  <div id="login-modal" class="login-modal" aria-hidden="true">
+    <div class="login-modal-inner">
+      <h2>Log in</h2>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" name="email" required placeholder="you@example.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" name="password" required placeholder="Your password" autocomplete="current-password">
+        </div>
+        <p class="form-error" id="login-error" role="alert" style="display: none;"></p>
+        <div class="login-modal-actions">
+          <button type="button" class="btn btn-secondary btn-small" id="login-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-small">Log in</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <footer class="footer">
     <div class="footer-inner">
       <p class="footer-brand">ShareMe</p>
@@ -82,10 +103,60 @@
       var navGuest = document.getElementById('nav-guest');
       var navAuth = document.getElementById('nav-auth');
       var displayNameEl = document.getElementById('user-display-name');
+      var loginModal = document.getElementById('login-modal');
+      var loginError = document.getElementById('login-error');
+      var loginForm = document.getElementById('login-form');
 
       function displayName(user) {
         return (user.display_name || user.first_name || user.username || user.email || 'User').trim() || 'User';
       }
+
+      function showLoginError(msg) {
+        loginError.textContent = msg || '';
+        loginError.style.display = msg ? 'block' : 'none';
+      }
+
+      document.getElementById('nav-login-btn').addEventListener('click', function (e) {
+        e.preventDefault();
+        showLoginError('');
+        loginForm.reset();
+        loginModal.classList.add('open');
+        loginModal.setAttribute('aria-hidden', 'false');
+      });
+
+      document.getElementById('login-cancel').addEventListener('click', function () {
+        loginModal.classList.remove('open');
+        loginModal.setAttribute('aria-hidden', 'true');
+        showLoginError('');
+      });
+
+      loginForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        showLoginError('');
+        var email = document.getElementById('login-email').value.trim();
+        var password = document.getElementById('login-password').value;
+        if (!email || !password) {
+          showLoginError('Email and password are required.');
+          return;
+        }
+        fetch('/api/login', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, password: password })
+        })
+          .then(function (r) { return r.json().then(function (data) { return { status: r.status, data: data }; }); })
+          .then(function (result) {
+            if (result.data.ok) {
+              window.location.href = 'sharemedashboard.html';
+            } else {
+              showLoginError(result.data.error || 'Invalid email or password.');
+            }
+          })
+          .catch(function () {
+            showLoginError('Unable to reach server. Please try again.');
+          });
+      });
 
       fetch('/api/me', { credentials: 'include' })
         .then(function (r) { return r.json(); })

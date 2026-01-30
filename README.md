@@ -2,6 +2,30 @@
 
 Personal information sharing — landing page, create account, and dashboard.
 
+## Running locally (test before pushing to Render)
+
+1. **Install dependencies** (once):
+   ```powershell
+   npm install
+   ```
+
+2. **Start the server**:
+   ```powershell
+   npm start
+   ```
+   Or: `node server.js`
+
+3. **Open in your browser**:
+   - http://localhost:3000/
+   - Or: http://localhost:3000/sharemelandingpage.html
+
+If port 3000 is in use, the server will try 3001, 3002, etc. You can also set a port:
+   ```powershell
+   $env:PORT=3001; node server.js
+   ```
+
+4. **Stop the server**: Press `Ctrl+C` in the terminal.
+
 ## Move this project out of the Unity folder (optional)
 
 This folder was created as a **standalone** copy of ShareMe with no Unity files. To use it as its own project:

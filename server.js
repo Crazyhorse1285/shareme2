@@ -37,6 +37,17 @@ function hashPassword(password) {
   return salt + ':' + hash;
 }
 
+function verifyPassword(plainPassword, storedHash) {
+  if (!storedHash || typeof plainPassword !== 'string' || storedHash.indexOf(':') === -1) return false;
+  const [salt, hash] = storedHash.split(':');
+  if (!salt || !hash) return false;
+  const computed = crypto.scryptSync(plainPassword, salt, 64).toString('hex');
+  const a = Buffer.from(hash, 'hex');
+  const b = Buffer.from(computed, 'hex');
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
 function sendJson(res, status, data) {
   res.writeHead(status, {
     'Content-Type': 'application/json',
@@ -164,6 +175,31 @@ async function main() {
       return;
     }
 
+    if (req.method === 'POST' && urlPath === '/api/login') {
+      try {
+        const body = await parseBody(req);
+        const { email, password } = body;
+        if (!email || !password) {
+          sendJson(res, 400, { ok: false, error: 'Email and password are required.' });
+          return;
+        }
+        const authUser = db.getAuthUserByEmail((email || '').trim());
+        const storedHash = authUser && (authUser.password_hash || authUser.PASSWORD_HASH);
+        if (!authUser || !storedHash || !verifyPassword(password, storedHash)) {
+          sendJson(res, 401, { ok: false, error: 'Invalid email or password.' });
+          return;
+        }
+        const sessionId = crypto.randomBytes(24).toString('hex');
+        sessions.set(sessionId, { userId: authUser.id });
+        setSessionCookie(res, sessionId);
+        sendJson(res, 200, { ok: true, message: 'Logged in successfully.' });
+      } catch (e) {
+        console.error(e);
+        sendJson(res, 500, { ok: false, error: 'Login failed. Please try again.' });
+      }
+      return;
+    }
+
     if (req.method === 'POST' && urlPath === '/api/register') {
       try {
         const body = await parseBody(req);
@@ -217,12 +253,27 @@ async function main() {
     });
   });
 
-  server.listen(PORT, () => {
-    console.log(`ShareMe server at http://localhost:${PORT}/`);
-    console.log(`  Landing: http://localhost:${PORT}/sharemelandingpage.html`);
-    console.log(`  Register: http://localhost:${PORT}/createuser.html`);
-    console.log(`  Dashboard: http://localhost:${PORT}/sharemedashboard.html`);
-  });
+  function listen(port) {
+    server.listen(port, () => {
+      console.log(`ShareMe server at http://localhost:${port}/`);
+      console.log(`  Landing: http://localhost:${port}/sharemelandingpage.html`);
+      console.log(`  Register: http://localhost:${port}/createuser.html`);
+      console.log(`  Dashboard: http://localhost:${port}/sharemedashboard.html`);
+      console.log('Press Ctrl+C to stop.');
+    }).on('error', (err) => {
+      if (err.code === 'EADDRINUSE' && port < 3010) {
+        console.log(`Port ${port} in use, trying ${port + 1}...`);
+        listen(port + 1);
+      } else {
+        console.error('Server failed to start:', err.message);
+        if (err.code === 'EADDRINUSE') {
+          console.error(`Try: set PORT=${PORT + 1} && node server.js  (or use a different port)`);
+        }
+        process.exit(1);
+      }
+    });
+  }
+  listen(PORT);
 }
 
 main().catch((err) => {

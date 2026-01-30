@@ -383,3 +383,12 @@ body {
 .edit-modal label { display: block; font-weight: 500; margin-bottom: 0.25rem; font-size: 0.9rem; }
 .edit-modal input { width: 100%; padding: 0.5rem 0.75rem; font: inherit; border: 1px solid var(--border); border-radius: var(--radius); }
 .edit-modal-actions { margin-top: 1.25rem; display: flex; gap: 0.5rem; justify-content: flex-end; }
+.login-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+.login-modal.open { display: flex; }
+.login-modal-inner { background: var(--bg-card); padding: 1.5rem; border-radius: var(--radius-lg); max-width: 400px; width: 90%; box-shadow: var(--shadow-md); }
+.login-modal h2 { margin: 0 0 1rem; font-size: 1.25rem; }
+.login-modal .form-group { margin-bottom: 1rem; }
+.login-modal label { display: block; font-weight: 500; margin-bottom: 0.25rem; font-size: 0.9rem; }
+.login-modal input { width: 100%; padding: 0.5rem 0.75rem; font: inherit; border: 1px solid var(--border); border-radius: var(--radius); }
+.login-modal-actions { margin-top: 1.25rem; display: flex; gap: 0.5rem; justify-content: flex-end; }
+.login-modal .form-error { color: #dc2626; font-size: 0.875rem; margin-top: 0.25rem; }
