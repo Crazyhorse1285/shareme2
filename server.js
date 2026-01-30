@@ -178,14 +178,25 @@ async function main() {
     if (req.method === 'POST' && urlPath === '/api/login') {
       try {
         const body = await parseBody(req);
-        const { email, password } = body;
-        if (!email || !password) {
+        const { email, password, passwordHash } = body;
+        const emailTrim = (email || '').trim();
+        const hasHash = typeof passwordHash === 'string' && passwordHash.length === 64;
+        const hasPassword = typeof password === 'string' && password.length > 0;
+        if (!emailTrim || (!hasHash && !hasPassword)) {
           sendJson(res, 400, { ok: false, error: 'Email and password are required.' });
           return;
         }
-        const authUser = db.getAuthUserByEmail((email || '').trim());
+        const authUser = db.getAuthUserByEmail(emailTrim);
         const storedHash = authUser && (authUser.password_hash || authUser.PASSWORD_HASH);
-        if (!authUser || !storedHash || !verifyPassword(password, storedHash)) {
+        if (!authUser || !storedHash) {
+          sendJson(res, 401, { ok: false, error: 'Invalid email or password.' });
+          return;
+        }
+        let verified = hasHash && verifyPassword(passwordHash, storedHash);
+        if (!verified && hasPassword) {
+          verified = verifyPassword(password, storedHash);
+        }
+        if (!verified) {
           sendJson(res, 401, { ok: false, error: 'Invalid email or password.' });
           return;
         }
@@ -203,8 +214,10 @@ async function main() {
     if (req.method === 'POST' && urlPath === '/api/register') {
       try {
         const body = await parseBody(req);
-        const { email, firstName, lastName, countryCode, phone, password, username, displayName } = body;
-        if (!email || !phone || !password) {
+        const { email, firstName, lastName, countryCode, phone, password, passwordHash, username, displayName } = body;
+        const hasHash = typeof passwordHash === 'string' && passwordHash.length === 64;
+        const hasPassword = typeof password === 'string' && password.length > 0;
+        if (!email || !phone || (!hasHash && !hasPassword)) {
           sendJson(res, 400, { ok: false, error: 'Email, phone, and password are required.' });
           return;
         }
@@ -212,13 +225,14 @@ async function main() {
           sendJson(res, 409, { ok: false, error: 'An account with this email already exists.' });
           return;
         }
+        const toStore = hasHash ? hashPassword(passwordHash) : hashPassword(password);
         const userId = db.insertUser({
           email: email.trim(),
           firstName: firstName ? firstName.trim() : null,
           lastName: lastName ? lastName.trim() : null,
           countryCode: countryCode || null,
           phone: phone.trim(),
-          passwordHash: hashPassword(password),
+          passwordHash: toStore,
           username: username ? username.trim() : null,
           displayName: displayName ? displayName.trim() : null
         });

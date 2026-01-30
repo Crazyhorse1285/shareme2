@@ -130,6 +130,16 @@
         showLoginError('');
       });
 
+      function sha256Hex(str) {
+        return crypto.subtle.digest('SHA-256', new TextEncoder().encode(str))
+          .then(function (buf) {
+            var arr = new Uint8Array(buf);
+            var hex = '';
+            for (var i = 0; i < arr.length; i++) { hex += ('0' + arr[i].toString(16)).slice(-2); }
+            return hex;
+          });
+      }
+
       loginForm.addEventListener('submit', function (e) {
         e.preventDefault();
         showLoginError('');
@@ -139,23 +149,25 @@
           showLoginError('Email and password are required.');
           return;
         }
-        fetch('/api/login', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email, password: password })
-        })
-          .then(function (r) { return r.json().then(function (data) { return { status: r.status, data: data }; }); })
-          .then(function (result) {
-            if (result.data.ok) {
-              window.location.href = 'sharemedashboard.html';
-            } else {
-              showLoginError(result.data.error || 'Invalid email or password.');
-            }
+        sha256Hex(password).then(function (passwordHash) {
+          fetch('/api/login', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email, passwordHash: passwordHash })
           })
-          .catch(function () {
-            showLoginError('Unable to reach server. Please try again.');
-          });
+            .then(function (r) { return r.json().then(function (data) { return { status: r.status, data: data }; }); })
+            .then(function (result) {
+              if (result.data.ok) {
+                window.location.href = 'sharemedashboard.html';
+              } else {
+                showLoginError(result.data.error || 'Invalid email or password.');
+              }
+            })
+            .catch(function () {
+              showLoginError('Unable to reach server. Please try again.');
+            });
+        });
       });
 
       fetch('/api/me', { credentials: 'include' })
