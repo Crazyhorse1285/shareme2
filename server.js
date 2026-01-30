@@ -5,18 +5,10 @@ const crypto = require('crypto');
 
 const PORT = Number(process.env.PORT) || 3000;
 const MIME_TYPES = {
-  '.html': 'text/html',
-  '.css': 'text/css',
-  '.js': 'application/javascript',
-  '.json': 'application/json',
-  '.ico': 'image/x-icon',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.svg': 'image/svg+xml',
-  '.woff': 'font/woff',
-  '.woff2': 'font/woff2'
+  '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript',
+  '.json': 'application/json', '.ico': 'image/x-icon', '.png': 'image/png',
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif',
+  '.svg': 'image/svg+xml', '.woff': 'font/woff', '.woff2': 'font/woff2'
 };
 
 function hashPassword(password) {
@@ -35,33 +27,31 @@ function parseBody(req) {
     let body = '';
     req.on('data', (chunk) => { body += chunk; });
     req.on('end', () => {
-      try {
-        resolve(body ? JSON.parse(body) : {});
-      } catch (e) {
-        reject(e);
-      }
+      try { resolve(body ? JSON.parse(body) : {}); } catch (e) { reject(e); }
     });
     req.on('error', reject);
   });
 }
 
+function withUser(id, db, fn) {
+  const user = db.getUserById(id);
+  if (!user) return { status: 404, body: { ok: false, error: 'User not found.' }};
+  return fn(user);
+}
+
 async function main() {
-  const { insertUser, getUserByEmail, getRecentRegistrations, getUserById, deleteUser, updateUser } = await require('./db').initDb();
+  const db = await require('./db').initDb();
 
   const server = http.createServer(async (req, res) => {
     const urlPath = req.url.split('?')[0];
-
     const usersIdMatch = urlPath.match(/^\/api\/users\/([^/]+)$/);
+
     if (usersIdMatch) {
       const id = usersIdMatch[1];
       if (req.method === 'GET') {
         try {
-          const user = getUserById(id);
-          if (!user) {
-            sendJson(res, 404, { ok: false, error: 'User not found.' });
-            return;
-          }
-          sendJson(res, 200, { ok: true, user });
+          const result = withUser(id, db, (user) => ({ status: 200, body: { ok: true, user } }));
+          sendJson(res, result.status, result.body);
         } catch (e) {
           console.error(e);
           sendJson(res, 500, { ok: false, error: 'Failed to fetch user.' });
@@ -70,13 +60,11 @@ async function main() {
       }
       if (req.method === 'DELETE') {
         try {
-          const user = getUserById(id);
-          if (!user) {
-            sendJson(res, 404, { ok: false, error: 'User not found.' });
-            return;
-          }
-          deleteUser(id);
-          sendJson(res, 200, { ok: true, message: 'User deleted.' });
+          const result = withUser(id, db, () => {
+            db.deleteUser(id);
+            return { status: 200, body: { ok: true, message: 'User deleted.' }};
+          });
+          sendJson(res, result.status, result.body);
         } catch (e) {
           console.error(e);
           sendJson(res, 500, { ok: false, error: 'Failed to delete user.' });
@@ -85,7 +73,7 @@ async function main() {
       }
       if (req.method === 'PUT') {
         try {
-          const user = getUserById(id);
+          const user = db.getUserById(id);
           if (!user) {
             sendJson(res, 404, { ok: false, error: 'User not found.' });
             return;
@@ -96,7 +84,7 @@ async function main() {
             sendJson(res, 400, { ok: false, error: 'Email and phone are required.' });
             return;
           }
-          updateUser(id, {
+          db.updateUser(id, {
             email: (email || '').trim(),
             first_name: first_name != null ? String(first_name).trim() : null,
             last_name: last_name != null ? String(last_name).trim() : null,
@@ -114,9 +102,8 @@ async function main() {
 
     if (req.method === 'GET' && urlPath === '/api/registrations') {
       try {
-        const url = new URL(req.url || '', 'http://localhost');
-        const limit = url.searchParams.get('limit') || '50';
-        const rows = getRecentRegistrations(limit);
+        const limit = new URL(req.url || '', 'http://localhost').searchParams.get('limit') || '50';
+        const rows = db.getRecentRegistrations(limit);
         sendJson(res, 200, { ok: true, count: rows.length, registrations: rows });
       } catch (e) {
         console.error(e);
@@ -133,18 +120,17 @@ async function main() {
           sendJson(res, 400, { ok: false, error: 'Email, phone, and password are required.' });
           return;
         }
-        if (getUserByEmail(email)) {
+        if (db.getUserByEmail(email)) {
           sendJson(res, 409, { ok: false, error: 'An account with this email already exists.' });
           return;
         }
-        const passwordHash = hashPassword(password);
-        insertUser({
+        db.insertUser({
           email: email.trim(),
           firstName: firstName ? firstName.trim() : null,
           lastName: lastName ? lastName.trim() : null,
           countryCode: countryCode || null,
           phone: phone.trim(),
-          passwordHash,
+          passwordHash: hashPassword(password),
           username: username ? username.trim() : null,
           displayName: displayName ? displayName.trim() : null
         });
@@ -157,47 +143,34 @@ async function main() {
       return;
     }
 
-    let fileUrlPath = req.url === '/' ? '/sharemelandingpage.html' : req.url;
-    fileUrlPath = fileUrlPath.split('?')[0].replace(/^(\.\.(\/|\\)+)+/, '');
+    // Static files
+    const fileUrlPath = req.url === '/' ? '/sharemelandingpage.html' : urlPath.replace(/^(\.\.(\/|\\)+)+/, '');
     const relativePath = fileUrlPath.startsWith('/') ? fileUrlPath.slice(1) : fileUrlPath;
     const filePath = path.join(__dirname, relativePath);
-
-    const resolvedPath = path.resolve(filePath);
-    if (!resolvedPath.startsWith(path.resolve(__dirname))) {
-      res.writeHead(403, { 'Content-Type': 'text/plain' });
-      res.end('Forbidden');
+    if (!path.resolve(filePath).startsWith(path.resolve(__dirname))) {
+      res.writeHead(403, { 'Content-Type': 'text/plain' }).end('Forbidden');
       return;
     }
-
-    const ext = path.extname(filePath);
-    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-
-    fs.readFile(resolvedPath, (err, data) => {
+    const contentType = MIME_TYPES[path.extname(filePath)] || 'application/octet-stream';
+    fs.readFile(filePath, (err, data) => {
       if (err) {
-        if (err.code === 'ENOENT') {
-          res.writeHead(404, { 'Content-Type': 'text/plain' });
-          res.end('Not found');
-        } else {
-          res.writeHead(500, { 'Content-Type': 'text/plain' });
-          res.end('Server error');
-        }
+        const status = err.code === 'ENOENT' ? 404 : 500;
+        res.writeHead(status, { 'Content-Type': 'text/plain' }).end(status === 404 ? 'Not found' : 'Server error');
         return;
       }
-      res.writeHead(200, { 'Content-Type': contentType });
-      res.end(data);
+      res.writeHead(200, { 'Content-Type': contentType }).end(data);
     });
   });
 
   server.listen(PORT, () => {
-    console.log(`ShareMe server running at http://localhost:${PORT}/`);
-    console.log(`  Landing:  http://localhost:${PORT}/sharemelandingpage.html`);
+    console.log(`ShareMe server at http://localhost:${PORT}/`);
+    console.log(`  Landing: http://localhost:${PORT}/sharemelandingpage.html`);
     console.log(`  Register: http://localhost:${PORT}/createuser.html`);
     console.log(`  Dashboard: http://localhost:${PORT}/sharemedashboard.html`);
-    console.log('Press Ctrl+C to stop.');
   });
 }
 
 main().catch((err) => {
-  console.error('Failed to start server:', err);
+  console.error('Failed to start:', err);
   process.exit(1);
 });

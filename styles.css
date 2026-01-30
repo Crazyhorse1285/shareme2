@@ -351,3 +351,34 @@ body {
     text-align: center;
   }
 }
+
+/* View registrations + edit modal */
+.registrations-section { max-width: 900px; margin: 2rem auto 4rem; padding: 1.5rem; }
+.registrations-section h1 { margin: 0 0 1rem; font-size: 1.5rem; color: var(--text-primary); }
+.registrations-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.registrations-table th,
+.registrations-table td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+.registrations-table th { font-weight: 600; color: var(--text-secondary); background: var(--bg-page); }
+.registrations-table tr:hover { background: var(--bg-card); }
+.registrations-empty,
+.registrations-error { padding: 1.5rem; color: var(--text-muted); }
+.registrations-error { color: #dc2626; }
+.back-link { display: inline-block; margin-top: 1rem; color: var(--text-secondary); font-size: 0.9375rem; }
+.back-link:hover { color: var(--accent); }
+.btn-row { display: flex; gap: 0.5rem; align-items: center; white-space: nowrap; }
+.registrations-table th:last-child,
+.registrations-table td:last-child { width: 1%; white-space: nowrap; }
+.registrations-table .btn { cursor: pointer; font: inherit; border-radius: 8px; font-weight: 500; min-height: 32px; }
+.registrations-table .btn-small { padding: 0.4rem 0.75rem; font-size: 0.8125rem; }
+.registrations-table .btn-primary { background: var(--accent); color: #fff; border: none; }
+.registrations-table .btn-primary:hover { background: var(--accent-hover); color: #fff; }
+.registrations-table .btn-danger { background: #dc2626; color: #fff; border: none; }
+.registrations-table .btn-danger:hover { background: #b91c1c; color: #fff; }
+.edit-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+.edit-modal.open { display: flex; }
+.edit-modal-inner { background: var(--bg-card); padding: 1.5rem; border-radius: var(--radius-lg); max-width: 400px; width: 90%; box-shadow: var(--shadow-md); }
+.edit-modal h2 { margin: 0 0 1rem; font-size: 1.25rem; }
+.edit-modal .form-group { margin-bottom: 1rem; }
+.edit-modal label { display: block; font-weight: 500; margin-bottom: 0.25rem; font-size: 0.9rem; }
+.edit-modal input { width: 100%; padding: 0.5rem 0.75rem; font: inherit; border: 1px solid var(--border); border-radius: var(--radius); }
+.edit-modal-actions { margin-top: 1.25rem; display: flex; gap: 0.5rem; justify-content: flex-end; }

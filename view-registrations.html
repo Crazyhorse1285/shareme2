@@ -8,35 +8,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-  <style>
-    .registrations-section { max-width: 900px; margin: 2rem auto 4rem; padding: 1.5rem; }
-    .registrations-section h1 { margin: 0 0 1rem; font-size: 1.5rem; color: var(--text-primary); }
-    .registrations-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    .registrations-table th, .registrations-table td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
-    .registrations-table th { font-weight: 600; color: var(--text-secondary); background: var(--bg-page); }
-    .registrations-table tr:hover { background: var(--bg-card); }
-    .registrations-empty, .registrations-error { padding: 1.5rem; color: var(--text-muted); }
-    .registrations-error { color: #dc2626; }
-    .back-link { display: inline-block; margin-top: 1rem; color: var(--text-secondary); font-size: 0.9375rem; }
-    .back-link:hover { color: var(--accent); }
-    .btn-row { display: flex; gap: 0.5rem; align-items: center; white-space: nowrap; }
-    .registrations-table th:last-child,
-    .registrations-table td:last-child { width: 1%; white-space: nowrap; }
-    .registrations-table .btn { cursor: pointer; font: inherit; border-radius: 8px; font-weight: 500; min-height: 32px; }
-    .registrations-table .btn-small { padding: 0.4rem 0.75rem; font-size: 0.8125rem; }
-    .registrations-table .btn-primary { background: var(--accent); color: #fff; border: none; }
-    .registrations-table .btn-primary:hover { background: var(--accent-hover); color: #fff; }
-    .registrations-table .btn-danger { background: #dc2626; color: #fff; border: none; }
-    .registrations-table .btn-danger:hover { background: #b91c1c; color: #fff; }
-    .edit-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
-    .edit-modal.open { display: flex; }
-    .edit-modal-inner { background: var(--bg-card); padding: 1.5rem; border-radius: var(--radius-lg); max-width: 400px; width: 90%; box-shadow: var(--shadow-md); }
-    .edit-modal h2 { margin: 0 0 1rem; font-size: 1.25rem; }
-    .edit-modal .form-group { margin-bottom: 1rem; }
-    .edit-modal label { display: block; font-weight: 500; margin-bottom: 0.25rem; font-size: 0.9rem; }
-    .edit-modal input { width: 100%; padding: 0.5rem 0.75rem; font: inherit; border: 1px solid var(--border); border-radius: var(--radius); }
-    .edit-modal-actions { margin-top: 1.25rem; display: flex; gap: 0.5rem; justify-content: flex-end; }
-  </style>
 </head>
 <body>
   <header class="header">
@@ -105,7 +76,9 @@
 
   <script>
     (function () {
-      var el = document.getElementById('registrations-content');
+      var content = document.getElementById('registrations-content');
+      var modal = document.getElementById('edit-modal');
+      var editFields = ['id', 'email', 'first_name', 'last_name', 'username', 'phone'];
       var columns = [
         { key: 'id', label: 'ID' },
         { key: 'email', label: 'Email' },
@@ -117,9 +90,42 @@
         { key: '_actions', label: 'Actions' }
       ];
 
+      function setContent(html, className) {
+        content.innerHTML = html;
+        if (className) content.className = className;
+      }
+
+      function api(method, path, body) {
+        var opts = { method: method, headers: {} };
+        if (body) {
+          opts.headers['Content-Type'] = 'application/json';
+          opts.body = JSON.stringify(body);
+        }
+        return fetch(path, opts).then(function (r) { return r.json(); });
+      }
+
+      function cellVal(row, key) {
+        var v = row[key];
+        return (v != null && v !== '') ? v : '—';
+      }
+
+      function fillEditForm(user) {
+        editFields.forEach(function (k) {
+          var el = document.getElementById('edit-' + k);
+          if (el) el.value = user[k] || '';
+        });
+        modal.classList.add('open');
+        modal.setAttribute('aria-hidden', 'false');
+      }
+
+      function closeModal() {
+        modal.classList.remove('open');
+        modal.setAttribute('aria-hidden', 'true');
+      }
+
       function renderTable(registrations) {
-        if (!registrations || registrations.length === 0) {
-          el.innerHTML = '<p class="registrations-empty">No registrations yet.</p>';
+        if (!registrations || !registrations.length) {
+          setContent('<p class="registrations-empty">No registrations yet.</p>');
           return;
         }
         var thead = '<tr>' + columns.map(function (c) { return '<th>' + c.label + '</th>'; }).join('') + '</tr>';
@@ -128,60 +134,38 @@
             if (c.key === '_actions') {
               return '<td class="btn-row"><button type="button" class="btn btn-primary btn-small edit-btn" data-id="' + row.id + '">Edit</button><button type="button" class="btn btn-danger btn-small delete-btn" data-id="' + row.id + '">Delete</button></td>';
             }
-            return '<td>' + (row[c.key] != null && row[c.key] !== '' ? row[c.key] : '—') + '</td>';
+            return '<td>' + cellVal(row, c.key) + '</td>';
           }).join('');
           return '<tr data-id="' + row.id + '">' + cells + '</tr>';
         }).join('');
-        el.innerHTML = '<table class="registrations-table"><thead>' + thead + '</thead><tbody>' + rows + '</tbody></table>';
-
-        el.querySelectorAll('.delete-btn').forEach(function (btn) {
-          btn.addEventListener('click', function () {
-            var id = btn.getAttribute('data-id');
-            if (confirm('Delete this user?')) {
-              fetch('/api/users/' + id, { method: 'DELETE' })
-                .then(function (r) { return r.json(); })
-                .then(function (data) {
-                  if (data.ok) { loadRegistrations(); }
-                  else { alert(data.error || 'Delete failed.'); }
-                })
-                .catch(function () { alert('Request failed.'); });
-            }
-          });
-        });
-        el.querySelectorAll('.edit-btn').forEach(function (btn) {
-          btn.addEventListener('click', function () {
-            var id = btn.getAttribute('data-id');
-            fetch('/api/users/' + id)
-              .then(function (r) { return r.json(); })
-              .then(function (data) {
-                if (data.ok && data.user) {
-                  var u = data.user;
-                  document.getElementById('edit-id').value = u.id;
-                  document.getElementById('edit-email').value = u.email || '';
-                  document.getElementById('edit-first_name').value = u.first_name || '';
-                  document.getElementById('edit-last_name').value = u.last_name || '';
-                  document.getElementById('edit-username').value = u.username || '';
-                  document.getElementById('edit-phone').value = u.phone || '';
-                  document.getElementById('edit-modal').classList.add('open');
-                  document.getElementById('edit-modal').setAttribute('aria-hidden', 'false');
-                }
-              })
-              .catch(function () { alert('Could not load user.'); });
-          });
-        });
+        setContent('<table class="registrations-table"><thead>' + thead + '</thead><tbody>' + rows + '</tbody></table>');
       }
 
+      content.addEventListener('click', function (e) {
+        var btn = e.target.closest('.edit-btn, .delete-btn');
+        if (!btn) return;
+        var id = btn.getAttribute('data-id');
+        if (btn.classList.contains('delete-btn')) {
+          if (!confirm('Delete this user?')) return;
+          api('DELETE', '/api/users/' + id).then(function (data) {
+            if (data.ok) loadRegistrations();
+            else alert(data.error || 'Delete failed.');
+          }).catch(function () { alert('Request failed.'); });
+        } else {
+          api('GET', '/api/users/' + id).then(function (data) {
+            if (data.ok && data.user) fillEditForm(data.user);
+          }).catch(function () { alert('Could not load user.'); });
+        }
+      });
+
       function loadRegistrations() {
-        el.innerHTML = '<p class="registrations-empty">Loading…</p>';
-        fetch('/api/registrations')
-          .then(function (r) { return r.json(); })
-          .then(function (data) {
-            if (data.ok && data.registrations) renderTable(data.registrations);
-            else el.innerHTML = '<p class="registrations-empty">No registrations yet.</p>';
-          })
-          .catch(function () {
-            el.innerHTML = '<p class="registrations-error">Could not load registrations. Make sure you’re on the same server (e.g. localhost or your Render URL).</p>';
-          });
+        setContent('<p class="registrations-empty">Loading…</p>');
+        api('GET', '/api/registrations').then(function (data) {
+          if (data.ok && data.registrations) renderTable(data.registrations);
+          else setContent('<p class="registrations-empty">No registrations yet.</p>');
+        }).catch(function () {
+          setContent('<p class="registrations-error">Could not load registrations. Make sure you’re on the same server (e.g. localhost or your Render URL).</p>');
+        });
       }
 
       document.getElementById('edit-form').addEventListener('submit', function (e) {
@@ -194,27 +178,12 @@
           username: document.getElementById('edit-username').value.trim() || null,
           phone: document.getElementById('edit-phone').value.trim()
         };
-        fetch('/api/users/' + id, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        })
-          .then(function (r) { return r.json(); })
-          .then(function (data) {
-            if (data.ok) {
-              document.getElementById('edit-modal').classList.remove('open');
-              document.getElementById('edit-modal').setAttribute('aria-hidden', 'true');
-              loadRegistrations();
-            } else {
-              alert(data.error || 'Update failed.');
-            }
-          })
-          .catch(function () { alert('Request failed.'); });
+        api('PUT', '/api/users/' + id, payload).then(function (data) {
+          if (data.ok) { closeModal(); loadRegistrations(); }
+          else alert(data.error || 'Update failed.');
+        }).catch(function () { alert('Request failed.'); });
       });
-      document.getElementById('edit-cancel').addEventListener('click', function () {
-        document.getElementById('edit-modal').classList.remove('open');
-        document.getElementById('edit-modal').setAttribute('aria-hidden', 'true');
-      });
+      document.getElementById('edit-cancel').addEventListener('click', closeModal);
 
       loadRegistrations();
     })();
