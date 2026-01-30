@@ -160,7 +160,7 @@
 
       function loadRegistrations() {
         setContent('<p class="registrations-empty">Loading…</p>');
-        api('GET', '/api/registrations').then(function (data) {
+        api('GET', '/api/registrations?_t=' + Date.now()).then(function (data) {
           if (data.ok && data.registrations) renderTable(data.registrations);
           else setContent('<p class="registrations-empty">No registrations yet.</p>');
         }).catch(function () {

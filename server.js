@@ -38,7 +38,11 @@ function hashPassword(password) {
 }
 
 function sendJson(res, status, data) {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.writeHead(status, {
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-store, no-cache, must-revalidate',
+    'Pragma': 'no-cache'
+  });
   res.end(JSON.stringify(data));
 }
 
