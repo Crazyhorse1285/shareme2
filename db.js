@@ -125,12 +125,23 @@ async function initDb() {
     db.run('ALTER TABLE users ADD COLUMN locked_until TEXT');
     save();
   }
+  var shareCols = ['share_name_prefix', 'share_name', 'share_email', 'share_country_code', 'share_phone', 'share_street', 'share_city', 'share_state', 'share_postal_code'];
+  for (var i = 0; i < shareCols.length; i++) {
+    currentCols = db.exec('PRAGMA table_info(users)')[0].values.map(function (r) { return r[1]; });
+    if (currentCols.indexOf(shareCols[i]) === -1) {
+      db.run('ALTER TABLE users ADD COLUMN ' + shareCols[i] + ' TEXT');
+      save();
+    }
+  }
 
-  return { insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, getRecentRegistrations, getUserById, deleteUser, updateUser };
+  return { insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, getRecentRegistrations, getUserById, deleteUser, updateUser, getShareInfo, updateShareInfo };
 }
 
 function getUserById(id) {
-  return queryOne('SELECT id, email, first_name, last_name, country_code, phone, username, display_name, created_at FROM users WHERE id = ?', [id]);
+  return queryOne(
+    'SELECT id, email, first_name, last_name, country_code, phone, username, display_name, created_at, share_name_prefix, share_name, share_email, share_country_code, share_phone, share_street, share_city, share_state, share_postal_code FROM users WHERE id = ?',
+    [id]
+  );
 }
 
 function deleteUser(id) {
@@ -194,6 +205,31 @@ function recordFailedLogin(userId) {
 
 function clearLoginLock(userId) {
   runSql('UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = ?', [userId]);
+}
+
+function getShareInfo(userId) {
+  return queryOne(
+    'SELECT share_name_prefix, share_name, share_email, share_country_code, share_phone, share_street, share_city, share_state, share_postal_code FROM users WHERE id = ?',
+    [userId]
+  );
+}
+
+function updateShareInfo(userId, data) {
+  runSql(
+    'UPDATE users SET share_name_prefix = ?, share_name = ?, share_email = ?, share_country_code = ?, share_phone = ?, share_street = ?, share_city = ?, share_state = ?, share_postal_code = ? WHERE id = ?',
+    [
+      data.share_name_prefix != null ? String(data.share_name_prefix).trim() : null,
+      data.share_name != null ? String(data.share_name).trim() : null,
+      data.share_email != null ? String(data.share_email).trim() : null,
+      data.share_country_code != null ? String(data.share_country_code).trim() : null,
+      data.share_phone != null ? String(data.share_phone).trim() : null,
+      data.share_street != null ? String(data.share_street).trim() : null,
+      data.share_city != null ? String(data.share_city).trim() : null,
+      data.share_state != null ? String(data.share_state).trim() : null,
+      data.share_postal_code != null ? String(data.share_postal_code).trim() : null,
+      userId
+    ]
+  );
 }
 
 module.exports = { initDb, insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, emailToHash };

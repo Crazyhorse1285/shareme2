@@ -47,7 +47,87 @@
         <button type="button" class="btn btn-funnel" data-funnel="business">Business</button>
         <button type="button" class="btn btn-funnel" data-funnel="academics">Academics</button>
       </div>
+      <p class="funnel-edit-wrap">
+        <a href="#" id="share-info-edit-link" class="share-info-edit-link">Edit</a>
+      </p>
     </section>
+
+    <div id="share-info-modal" class="edit-modal" aria-hidden="true">
+      <div class="edit-modal-inner">
+        <h2>Information to share</h2>
+        <p class="edit-modal-desc">Add the details you want to show when someone scans your QR code.</p>
+        <form id="share-info-form">
+          <div class="form-group">
+            <label for="share-name-prefix">Name</label>
+            <div class="name-row">
+              <select id="share-name-prefix" name="name_prefix" aria-label="Prefix">
+                <option value="">—</option>
+                <option value="Mr.">Mr.</option>
+                <option value="Mrs.">Mrs.</option>
+                <option value="Ms.">Ms.</option>
+                <option value="Miss">Miss</option>
+                <option value="Dr.">Dr.</option>
+                <option value="Prof.">Prof.</option>
+              </select>
+              <input type="text" id="share-name" name="name" placeholder="Full name" autocomplete="name">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="share-email">Email</label>
+            <input type="email" id="share-email" name="email" placeholder="you@example.com" autocomplete="email" inputmode="email">
+            <p class="form-error" id="share-email-error" role="alert" style="display: none;">Please enter a valid email address.</p>
+          </div>
+          <div class="form-group">
+            <label for="share-phone">Phone number</label>
+            <div class="phone-row">
+              <select id="share-country-code" name="country_code" aria-label="Country code">
+                <option value="+1">+1</option>
+                <option value="+44">+44</option>
+                <option value="+91">+91</option>
+                <option value="+61">+61</option>
+                <option value="+81">+81</option>
+                <option value="+49">+49</option>
+                <option value="+33">+33</option>
+                <option value="+39">+39</option>
+                <option value="+34">+34</option>
+                <option value="+55">+55</option>
+                <option value="+86">+86</option>
+                <option value="+7">+7</option>
+                <option value="+82">+82</option>
+                <option value="+31">+31</option>
+                <option value="+41">+41</option>
+                <option value="+46">+46</option>
+                <option value="+27">+27</option>
+                <option value="+52">+52</option>
+                <option value="+353">+353</option>
+                <option value="+64">+64</option>
+              </select>
+              <input type="tel" id="share-phone" name="phone" placeholder="Phone number" autocomplete="tel">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="share-street">Street</label>
+            <input type="text" id="share-street" name="street" placeholder="Street address" autocomplete="street-address-line1">
+          </div>
+          <div class="form-group">
+            <label for="share-city">City</label>
+            <input type="text" id="share-city" name="city" placeholder="City" autocomplete="address-level2">
+          </div>
+          <div class="form-group">
+            <label for="share-state">State</label>
+            <input type="text" id="share-state" name="state" placeholder="State / Province" autocomplete="address-level1">
+          </div>
+          <div class="form-group">
+            <label for="share-postal">Postal code</label>
+            <input type="text" id="share-postal" name="postal_code" placeholder="Postal code" autocomplete="postal-code">
+          </div>
+          <div class="edit-modal-actions">
+            <button type="button" class="btn btn-secondary btn-small" id="share-info-cancel">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-small">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </main>
 
   <footer class="footer">
@@ -68,6 +148,7 @@
       var navGuest = document.getElementById('nav-guest');
       var navAuth = document.getElementById('nav-auth');
       var displayNameEl = document.getElementById('user-display-name');
+      var currentUser = null;
 
       function displayName(user) {
         return (user.display_name || user.first_name || user.username || user.email || 'User').trim() || 'User';
@@ -77,6 +158,7 @@
         .then(function (r) { return r.json(); })
         .then(function (data) {
           if (data.ok && data.user) {
+            currentUser = data.user;
             navGuest.style.display = 'none';
             navAuth.style.display = '';
             displayNameEl.textContent = displayName(data.user);
@@ -109,6 +191,111 @@
       });
 
       setQrFor('personal');
+
+      var shareInfoModal = document.getElementById('share-info-modal');
+      var shareInfoForm = document.getElementById('share-info-form');
+      var shareEmailInput = document.getElementById('share-email');
+      var shareEmailError = document.getElementById('share-email-error');
+
+      function isValidEmail(str) {
+        if (!str || typeof str !== 'string') return false;
+        var trimmed = str.trim();
+        if (!trimmed) return false;
+        var at = trimmed.indexOf('@');
+        if (at <= 0 || at === trimmed.length - 1) return false;
+        var dot = trimmed.indexOf('.', at + 1);
+        if (dot <= at + 1 || dot === trimmed.length - 1) return false;
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+      }
+
+      function showShareEmailError(msg) {
+        shareEmailError.textContent = msg || 'Please enter a valid email address.';
+        shareEmailError.style.display = 'block';
+        shareEmailInput.classList.add('input-error');
+      }
+      function hideShareEmailError() {
+        shareEmailError.style.display = 'none';
+        shareEmailInput.classList.remove('input-error');
+      }
+
+      document.getElementById('share-info-edit-link').addEventListener('click', function (e) {
+        e.preventDefault();
+        shareInfoModal.classList.add('open');
+        shareInfoModal.setAttribute('aria-hidden', 'false');
+        var u = currentUser || {};
+        document.getElementById('share-name-prefix').value = u.share_name_prefix || '';
+        document.getElementById('share-name').value = u.share_name || '';
+        document.getElementById('share-email').value = u.share_email || u.email || '';
+        document.getElementById('share-country-code').value = u.share_country_code || u.country_code || '+1';
+        document.getElementById('share-phone').value = u.share_phone || u.phone || '';
+        document.getElementById('share-street').value = u.share_street || '';
+        document.getElementById('share-city').value = u.share_city || '';
+        document.getElementById('share-state').value = u.share_state || '';
+        document.getElementById('share-postal').value = u.share_postal_code || '';
+        hideShareEmailError();
+      });
+
+      document.getElementById('share-info-cancel').addEventListener('click', function () {
+        shareInfoModal.classList.remove('open');
+        shareInfoModal.setAttribute('aria-hidden', 'true');
+        hideShareEmailError();
+      });
+
+      shareEmailInput.addEventListener('blur', function () {
+        var val = shareEmailInput.value.trim();
+        if (val && !isValidEmail(val)) showShareEmailError('Please enter a valid email address.');
+        else hideShareEmailError();
+      });
+
+      shareInfoForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        hideShareEmailError();
+        var emailVal = shareEmailInput.value.trim();
+        if (emailVal && !isValidEmail(emailVal)) {
+          showShareEmailError('Please enter a valid email address.');
+          return;
+        }
+        var data = {
+          share_name_prefix: document.getElementById('share-name-prefix').value,
+          share_name: document.getElementById('share-name').value.trim(),
+          share_email: emailVal,
+          share_country_code: document.getElementById('share-country-code').value,
+          share_phone: document.getElementById('share-phone').value.trim(),
+          share_street: document.getElementById('share-street').value.trim(),
+          share_city: document.getElementById('share-city').value.trim(),
+          share_state: document.getElementById('share-state').value.trim(),
+          share_postal_code: document.getElementById('share-postal').value.trim()
+        };
+        fetch('/api/me/share-info', {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (res) {
+            if (res.ok) {
+              if (currentUser) {
+                currentUser.share_name_prefix = data.share_name_prefix;
+                currentUser.share_name = data.share_name;
+                currentUser.share_email = data.share_email;
+                currentUser.share_country_code = data.share_country_code;
+                currentUser.share_phone = data.share_phone;
+                currentUser.share_street = data.share_street;
+                currentUser.share_city = data.share_city;
+                currentUser.share_state = data.share_state;
+                currentUser.share_postal_code = data.share_postal_code;
+              }
+              shareInfoModal.classList.remove('open');
+              shareInfoModal.setAttribute('aria-hidden', 'true');
+            } else {
+              showShareEmailError(res.error || 'Failed to save.');
+            }
+          })
+          .catch(function () {
+            showShareEmailError('Unable to reach server. Please try again.');
+          });
+      });
     })();
   </script>
 </body>
