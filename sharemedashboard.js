@@ -89,6 +89,19 @@
     ['email', 'phone', 'username'].forEach(function (id) { showAccountError(id, ''); });
   }
 
+  // ─── Success notification ───────────────────────────────────────────────
+  var toastTimeout;
+  function showSuccessNotification(message) {
+    var toast = getEl('success-toast');
+    if (!toast) return;
+    toast.textContent = message;
+    toast.classList.add('visible');
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(function () {
+      toast.classList.remove('visible');
+    }, 3500);
+  }
+
   // ─── Share info form: show / fill / save ────────────────────────────────
   function showSectionForm(section) {
     document.querySelectorAll('.share-section-form').forEach(function (form) {
@@ -232,19 +245,28 @@
     }
     savePersonalInfo()
       .then(function (res) {
-        if (res.ok) closeShareModal();
-        else showShareEmailError(res.error || 'Failed to save.');
+        if (res.ok) {
+          showSuccessNotification('Personal information saved successfully');
+          closeShareModal();
+        } else showShareEmailError(res.error || 'Failed to save.');
       })
       .catch(function () { showShareEmailError('Unable to reach server. Please try again.'); });
   }
 
+  var SECTION_SUCCESS_MESSAGES = {
+    professional: 'Professional information saved successfully',
+    business: 'Business information saved successfully',
+    academics: 'Academic information saved successfully'
+  };
   function handleSaveSection(section) {
     return function (e) {
       e.preventDefault();
       saveSectionForm(section)
         .then(function (res) {
-          if (res.ok) closeShareModal();
-          else alert(res.error || 'Failed to save.');
+          if (res.ok) {
+            showSuccessNotification(SECTION_SUCCESS_MESSAGES[section] || 'Information saved successfully');
+            closeShareModal();
+          } else alert(res.error || 'Failed to save.');
         })
         .catch(function () { alert('Unable to reach server. Please try again.'); });
     };
@@ -276,6 +298,7 @@
         if (res.ok) {
           mergeUser(data, ['email', 'first_name', 'last_name', 'country_code', 'phone', 'username', 'display_name']);
           dom.displayNameEl.textContent = displayName(currentUser);
+          showSuccessNotification('Account settings saved successfully');
           closeAccountModal();
         } else showAccountError('email', res.error || 'Failed to save.');
       })

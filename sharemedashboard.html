@@ -11,6 +11,28 @@
   <style>
     .settings-icon { display: inline-flex; align-items: center; padding: 0.25rem; margin-right: 0.25rem; color: var(--text-secondary); text-decoration: none; border-radius: var(--radius); }
     .settings-icon:hover { color: var(--accent); background: var(--bg-page); }
+    /* Success notification toast */
+    .success-toast {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #059669;
+      color: #fff;
+      padding: 0.75rem 1.25rem;
+      border-radius: var(--radius);
+      font-size: 0.9375rem;
+      font-weight: 500;
+      box-shadow: 0 4px 14px rgba(5, 150, 105, 0.35);
+      z-index: 1001;
+      opacity: 0;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      pointer-events: none;
+    }
+    .success-toast.visible {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
   </style>
 </head>
 <body>
@@ -322,6 +344,8 @@
       </div>
     </div>
   </main>
+
+  <div id="success-toast" class="success-toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <footer class="footer">
     <div class="footer-inner">
