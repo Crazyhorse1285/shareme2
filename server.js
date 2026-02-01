@@ -5,6 +5,7 @@ const crypto = require('crypto');
 
 const PORT = Number(process.env.PORT) || 3000;
 const SESSION_COOKIE = 'shareme_session';
+const ADMIN_SESSION_COOKIE = 'shareme_admin_session';
 const MIME_TYPES = {
   '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript',
   '.json': 'application/json', '.ico': 'image/x-icon', '.png': 'image/png',
@@ -13,6 +14,7 @@ const MIME_TYPES = {
 };
 
 const sessions = new Map();
+const adminSessions = new Map();
 
 function parseCookies(req) {
   const raw = req.headers.cookie || '';
@@ -29,6 +31,35 @@ function setSessionCookie(res, sessionId) {
 
 function clearSessionCookie(res) {
   res.setHeader('Set-Cookie', SESSION_COOKIE + '=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+}
+
+function setAdminSessionCookie(res, sessionId) {
+  res.setHeader('Set-Cookie', ADMIN_SESSION_COOKIE + '=' + sessionId + '; Path=/; HttpOnly; SameSite=Lax');
+}
+
+function clearAdminSessionCookie(res) {
+  res.setHeader('Set-Cookie', ADMIN_SESSION_COOKIE + '=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+}
+
+function isAdminSession(req) {
+  const cookies = parseCookies(req);
+  const sessionId = cookies[ADMIN_SESSION_COOKIE];
+  const session = sessionId && adminSessions.get(sessionId);
+  return session && session.admin === true;
+}
+
+function requireAdmin(req, res, onSuccess) {
+  if (!isAdminSession(req)) {
+    const wantsJson = req.headers.accept && req.headers.accept.indexOf('application/json') !== -1;
+    if (wantsJson) {
+      sendJson(res, 403, { ok: false, error: 'Admin login required.' });
+    } else {
+      const next = encodeURIComponent(req.url || '/view-registrations.html');
+      res.writeHead(302, { Location: '/admin-login.html?next=' + next }).end();
+    }
+    return;
+  }
+  onSuccess();
 }
 
 function hashPassword(password) {
@@ -77,114 +108,128 @@ function withUser(id, db, fn) {
 async function main() {
   const db = await require('./db').initDb();
 
-  const server = http.createServer(async (req, res) => {
+  const requestHandler = async (req, res) => {
     const urlPath = req.url.split('?')[0];
     const usersUnlockMatch = urlPath.match(/^\/api\/users\/([^/]+)\/unlock$/);
     const usersIdMatch = urlPath.match(/^\/api\/users\/([^/]+)$/);
 
     if (usersUnlockMatch && req.method === 'POST') {
       const id = usersUnlockMatch[1];
-      try {
-        const user = db.getUserById(id);
-        if (!user) {
-          sendJson(res, 404, { ok: false, error: 'User not found.' });
-          return;
-        }
-        db.clearLoginLock(id);
-        sendJson(res, 200, { ok: true, message: 'User unlocked. They can try to log in again.' });
-      } catch (e) {
-        console.error(e);
-        sendJson(res, 500, { ok: false, error: 'Failed to unlock user.' });
-      }
-      return;
-    }
-
-    if (usersIdMatch) {
-      const id = usersIdMatch[1];
-      if (req.method === 'GET') {
-        try {
-          const result = withUser(id, db, (user) => ({ status: 200, body: { ok: true, user } }));
-          sendJson(res, result.status, result.body);
-        } catch (e) {
-          console.error(e);
-          sendJson(res, 500, { ok: false, error: 'Failed to fetch user.' });
-        }
-        return;
-      }
-      if (req.method === 'DELETE') {
-        try {
-          const result = withUser(id, db, () => {
-            db.deleteUser(id);
-            return { status: 200, body: { ok: true, message: 'User deleted.' }};
-          });
-          sendJson(res, result.status, result.body);
-        } catch (e) {
-          console.error(e);
-          sendJson(res, 500, { ok: false, error: 'Failed to delete user.' });
-        }
-        return;
-      }
-      if (req.method === 'PUT') {
+      requireAdmin(req, res, function () {
         try {
           const user = db.getUserById(id);
           if (!user) {
             sendJson(res, 404, { ok: false, error: 'User not found.' });
             return;
           }
-          const body = await parseBody(req);
-          const { email, first_name, last_name, phone, username } = body;
-          if (!email || !phone) {
-            sendJson(res, 400, { ok: false, error: 'Email and phone are required.' });
-            return;
-          }
-          db.updateUser(id, {
-            email: (email || '').trim(),
-            first_name: first_name != null ? String(first_name).trim() : null,
-            last_name: last_name != null ? String(last_name).trim() : null,
-            phone: (phone || '').trim(),
-            username: username != null ? String(username).trim() : null
-          });
-          sendJson(res, 200, { ok: true, message: 'User updated.' });
+          db.clearLoginLock(id);
+          sendJson(res, 200, { ok: true, message: 'User unlocked. They can try to log in again.' });
         } catch (e) {
           console.error(e);
-          sendJson(res, 500, { ok: false, error: 'Failed to update user.' });
+          sendJson(res, 500, { ok: false, error: 'Failed to unlock user.' });
         }
+      });
+      return;
+    }
+
+    if (usersIdMatch) {
+      const id = usersIdMatch[1];
+      if (req.method === 'GET') {
+        requireAdmin(req, res, function () {
+          try {
+            const result = withUser(id, db, (user) => ({ status: 200, body: { ok: true, user } }));
+            sendJson(res, result.status, result.body);
+          } catch (e) {
+            console.error(e);
+            sendJson(res, 500, { ok: false, error: 'Failed to fetch user.' });
+          }
+        });
+        return;
+      }
+      if (req.method === 'DELETE') {
+        requireAdmin(req, res, function () {
+          try {
+            const result = withUser(id, db, () => {
+              db.deleteUser(id);
+              return { status: 200, body: { ok: true, message: 'User deleted.' }};
+            });
+            sendJson(res, result.status, result.body);
+          } catch (e) {
+            console.error(e);
+            sendJson(res, 500, { ok: false, error: 'Failed to delete user.' });
+          }
+        });
+        return;
+      }
+      if (req.method === 'PUT') {
+        requireAdmin(req, res, function () {
+          (async function () {
+            try {
+              const user = db.getUserById(id);
+              if (!user) {
+                sendJson(res, 404, { ok: false, error: 'User not found.' });
+                return;
+              }
+              const body = await parseBody(req);
+              const { email, first_name, last_name, phone, username } = body;
+              if (!email || !phone) {
+                sendJson(res, 400, { ok: false, error: 'Email and phone are required.' });
+                return;
+              }
+              db.updateUser(id, {
+                email: (email || '').trim(),
+                first_name: first_name != null ? String(first_name).trim() : null,
+                last_name: last_name != null ? String(last_name).trim() : null,
+                phone: (phone || '').trim(),
+                username: username != null ? String(username).trim() : null
+              });
+              sendJson(res, 200, { ok: true, message: 'User updated.' });
+            } catch (e) {
+              console.error(e);
+              sendJson(res, 500, { ok: false, error: 'Failed to update user.' });
+            }
+          })();
+        });
         return;
       }
     }
 
     if (req.method === 'GET' && urlPath === '/api/registrations') {
-      try {
-        const limit = new URL(req.url || '', 'http://localhost').searchParams.get('limit') || '50';
-        const rows = db.getRecentRegistrations(limit);
-        sendJson(res, 200, { ok: true, count: rows.length, registrations: rows });
-      } catch (e) {
-        console.error(e);
-        sendJson(res, 500, { ok: false, error: 'Failed to fetch registrations.' });
-      }
+      requireAdmin(req, res, function () {
+        try {
+          const limit = new URL(req.url || '', 'http://localhost').searchParams.get('limit') || '50';
+          const rows = db.getRecentRegistrations(limit);
+          sendJson(res, 200, { ok: true, count: rows.length, registrations: rows });
+        } catch (e) {
+          console.error(e);
+          sendJson(res, 500, { ok: false, error: 'Failed to fetch registrations.' });
+        }
+      });
       return;
     }
 
     if (req.method === 'GET' && urlPath === '/api/db') {
-      try {
-        const rows = db.getRecentRegistrations('500');
-        function toLowerKeys(obj) {
-          if (!obj || typeof obj !== 'object') return obj;
-          const out = {};
-          for (const k of Object.keys(obj)) {
-            out[k.toLowerCase()] = obj[k];
+      requireAdmin(req, res, function () {
+        try {
+          const rows = db.getRecentRegistrations('500');
+          function toLowerKeys(obj) {
+            if (!obj || typeof obj !== 'object') return obj;
+            const out = {};
+            for (const k of Object.keys(obj)) {
+              out[k.toLowerCase()] = obj[k];
+            }
+            return out;
           }
-          return out;
+          sendJson(res, 200, {
+            ok: true,
+            tables: [{ name: 'users', rowCount: rows.length }],
+            users: rows.map(toLowerKeys)
+          });
+        } catch (e) {
+          console.error(e);
+          sendJson(res, 500, { ok: false, error: 'Failed to fetch database contents.' });
         }
-        sendJson(res, 200, {
-          ok: true,
-          tables: [{ name: 'users', rowCount: rows.length }],
-          users: rows.map(toLowerKeys)
-        });
-      } catch (e) {
-        console.error(e);
-        sendJson(res, 500, { ok: false, error: 'Failed to fetch database contents.' });
-      }
+      });
       return;
     }
 
@@ -372,6 +417,53 @@ async function main() {
       return;
     }
 
+    if (req.method === 'POST' && urlPath === '/api/admin-login') {
+      try {
+        const adminEmail = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+        const adminPassword = process.env.ADMIN_PASSWORD || '';
+        if (!adminEmail || !adminPassword) {
+          sendJson(res, 503, { ok: false, error: 'Admin login is not configured. Set ADMIN_EMAIL and ADMIN_PASSWORD.' });
+          return;
+        }
+        const body = await parseBody(req);
+        const email = (body.email != null && typeof body.email === 'string') ? body.email.trim().toLowerCase() : '';
+        const password = typeof body.password === 'string' ? body.password : '';
+        if (!email || !password) {
+          sendJson(res, 400, { ok: false, error: 'Email and password are required.' });
+          return;
+        }
+        if (email !== adminEmail) {
+          sendJson(res, 401, { ok: false, error: 'Invalid email or password.' });
+          return;
+        }
+        const a = Buffer.from(password, 'utf8');
+        const b = Buffer.from(adminPassword, 'utf8');
+        if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+          sendJson(res, 401, { ok: false, error: 'Invalid email or password.' });
+          return;
+        }
+        const sessionId = crypto.randomBytes(24).toString('hex');
+        adminSessions.set(sessionId, { admin: true });
+        setAdminSessionCookie(res, sessionId);
+        const nextUrl = (new URL(req.url || '', 'http://localhost').searchParams.get('next')) || '/view-registrations.html';
+        const safeNext = nextUrl.startsWith('/') && (nextUrl === '/view-registrations.html' || nextUrl === '/view-database.html') ? nextUrl : '/view-registrations.html';
+        sendJson(res, 200, { ok: true, redirect: safeNext });
+      } catch (e) {
+        console.error(e);
+        sendJson(res, 500, { ok: false, error: 'Admin login failed.' });
+      }
+      return;
+    }
+
+    if (req.method === 'POST' && urlPath === '/api/admin-logout') {
+      const cookies = parseCookies(req);
+      const sessionId = cookies[ADMIN_SESSION_COOKIE];
+      if (sessionId) adminSessions.delete(sessionId);
+      clearAdminSessionCookie(res);
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+
     if (req.method === 'POST' && urlPath === '/api/forgot-password') {
       try {
         const body = await parseBody(req);
@@ -394,6 +486,30 @@ async function main() {
       return;
     }
 
+    // Fix common typo: sharemeview-database.html -> view-database.html (and same for view-registrations)
+    if (req.method === 'GET' && (urlPath === '/sharemeview-database.html' || urlPath === '/sharemeview-registrations.html')) {
+      const target = urlPath === '/sharemeview-database.html' ? '/view-database.html' : '/view-registrations.html';
+      res.writeHead(302, { Location: target }).end();
+      return;
+    }
+
+    // Admin-only pages: require admin session, then serve
+    if (req.method === 'GET' && (urlPath === '/view-registrations.html' || urlPath === '/view-database.html')) {
+      requireAdmin(req, res, function () {
+        const filePath = path.join(__dirname, urlPath.slice(1));
+        const contentType = MIME_TYPES[path.extname(filePath)] || 'application/octet-stream';
+        fs.readFile(filePath, (err, data) => {
+          if (err) {
+            const status = err.code === 'ENOENT' ? 404 : 500;
+            res.writeHead(status, { 'Content-Type': 'text/plain' }).end(status === 404 ? 'Not found' : 'Server error');
+            return;
+          }
+          res.writeHead(200, { 'Content-Type': contentType }).end(data);
+        });
+      });
+      return;
+    }
+
     // Static files
     const fileUrlPath = req.url === '/' ? '/sharemelandingpage.html' : urlPath.replace(/^(\.\.(\/|\\)+)+/, '');
     const relativePath = fileUrlPath.startsWith('/') ? fileUrlPath.slice(1) : fileUrlPath;
@@ -411,30 +527,25 @@ async function main() {
       }
       res.writeHead(200, { 'Content-Type': contentType }).end(data);
     });
-  });
+  };
 
-  function listen(port) {
-    server.listen(port, () => {
-      console.log(`ShareMe server at http://localhost:${port}/`);
-      console.log(`  Landing: http://localhost:${port}/sharemelandingpage.html`);
-      console.log(`  Register: http://localhost:${port}/createuser.html`);
-      console.log(`  Dashboard: http://localhost:${port}/sharemedashboard.html`);
-      console.log(`  Forgot password: http://localhost:${port}/forgot-password.html`);
-      console.log('Press Ctrl+C to stop.');
-    }).on('error', (err) => {
-      if (err.code === 'EADDRINUSE' && port < 3010) {
-        console.log(`Port ${port} in use, trying ${port + 1}...`);
-        listen(port + 1);
-      } else {
-        console.error('Server failed to start:', err.message);
-        if (err.code === 'EADDRINUSE') {
-          console.error(`Try: set PORT=${PORT + 1} && node server.js  (or use a different port)`);
-        }
-        process.exit(1);
-      }
-    });
-  }
-  listen(PORT);
+  const server = http.createServer(requestHandler);
+  server.listen(PORT, () => {
+    console.log(`ShareMe server at http://localhost:${PORT}/`);
+    console.log(`  Landing: http://localhost:${PORT}/sharemelandingpage.html`);
+    console.log(`  Register: http://localhost:${PORT}/createuser.html`);
+    console.log(`  Dashboard: http://localhost:${PORT}/sharemedashboard.html`);
+    console.log(`  Forgot password: http://localhost:${PORT}/forgot-password.html`);
+    console.log(`  Admin login: http://localhost:${PORT}/admin-login.html`);
+    console.log('Press Ctrl+C to stop.');
+  });
+  server.on('error', (err) => {
+    console.error('Server failed to start:', err.message);
+    if (err.code === 'EADDRINUSE') {
+      console.error(`Port ${PORT} is in use. Set a different port: $env:PORT=3002; node server.js`);
+    }
+    process.exit(1);
+  });
 }
 
 main().catch((err) => {

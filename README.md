@@ -26,6 +26,20 @@ If port 3000 is in use, the server will try 3001, 3002, etc. You can also set a 
 
 4. **Stop the server**: Press `Ctrl+C` in the terminal.
 
+### Admin (View registrations / View database)
+
+Only you (the sole admin) can open **View registrations** and **View database**. Use a separate admin login:
+
+1. Set your admin credentials with environment variables, then start the server:
+   ```powershell
+   $env:ADMIN_EMAIL="your@email.com"; $env:ADMIN_PASSWORD="YourSecretPassword"; node server.js
+   ```
+2. Open **Admin login**: http://localhost:3000/admin-login.html  
+3. Sign in with that email and password. You’ll be taken to View registrations (or View database if that’s where you were going).  
+4. Anyone else who opens view-registrations.html or view-database.html will be redirected to the admin login; without your credentials they cannot access those pages.
+
+Admin login uses a separate cookie from the main site, so you can be logged in as a normal user and as admin in different tabs.
+
 ## Move this project out of the Unity folder (optional)
 
 This folder was created as a **standalone** copy of ShareMe with no Unity files. To use it as its own project:
