@@ -157,8 +157,11 @@ function updateUser(id, data) {
 }
 
 function getRecentRegistrations(limit) {
-  const n = Math.min(Number(limit) || 50, 100);
-  return queryAll('SELECT id, email, first_name, last_name, username, phone, created_at, locked_until FROM users ORDER BY created_at DESC LIMIT ?', [n]);
+  const n = Math.min(Number(limit) || 50, 500);
+  return queryAll(
+    'SELECT id, email, first_name, last_name, username, phone, created_at, locked_until, share_name_prefix, share_name, share_email, share_country_code, share_phone, share_street, share_city, share_state, share_postal_code FROM users ORDER BY created_at DESC LIMIT ?',
+    [n]
+  );
 }
 
 function insertUser(user) {

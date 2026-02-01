@@ -168,10 +168,18 @@ async function main() {
     if (req.method === 'GET' && urlPath === '/api/db') {
       try {
         const rows = db.getRecentRegistrations('500');
+        function toLowerKeys(obj) {
+          if (!obj || typeof obj !== 'object') return obj;
+          const out = {};
+          for (const k of Object.keys(obj)) {
+            out[k.toLowerCase()] = obj[k];
+          }
+          return out;
+        }
         sendJson(res, 200, {
           ok: true,
           tables: [{ name: 'users', rowCount: rows.length }],
-          users: rows
+          users: rows.map(toLowerKeys)
         });
       } catch (e) {
         console.error(e);
