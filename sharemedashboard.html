@@ -48,7 +48,7 @@
         <button type="button" class="btn btn-funnel" data-funnel="academics">Academics</button>
       </div>
       <p class="funnel-edit-wrap">
-        <a href="#" id="share-info-edit-link" class="share-info-edit-link">Edit</a>
+        <a href="#" id="share-info-edit-link" class="share-info-edit-link">Edit personal information</a>
       </p>
     </section>
 
@@ -182,15 +182,23 @@
         qrImg.alt = 'QR code for ' + profile + ' profile';
       }
 
+      function setEditLinkText(profile) {
+        var label = profile.charAt(0).toUpperCase() + profile.slice(1);
+        document.getElementById('share-info-edit-link').textContent = 'Edit ' + label + ' information';
+      }
+
       document.querySelectorAll('.btn-funnel').forEach(function (btn) {
         btn.addEventListener('click', function () {
           document.querySelectorAll('.btn-funnel').forEach(function (b) { b.classList.remove('selected'); });
           this.classList.add('selected');
-          setQrFor(this.getAttribute('data-funnel'));
+          var profile = this.getAttribute('data-funnel');
+          setQrFor(profile);
+          setEditLinkText(profile);
         });
       });
 
       setQrFor('personal');
+      setEditLinkText('personal');
 
       var shareInfoModal = document.getElementById('share-info-modal');
       var shareInfoForm = document.getElementById('share-info-form');
