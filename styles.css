@@ -398,7 +398,8 @@ body {
 .status-locked { color: #dc2626; font-weight: 600; }
 .edit-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
 .edit-modal.open { display: flex; }
-.edit-modal-inner { background: var(--bg-card); padding: 1.5rem; border-radius: var(--radius-lg); max-width: 400px; width: 90%; box-shadow: var(--shadow-md); max-height: 90vh; overflow-y: auto; }
+.edit-modal-inner { background: var(--bg-card); border-radius: var(--radius-lg); max-width: 400px; width: 90%; box-shadow: var(--shadow-md); max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; }
+.edit-modal-scroll { overflow-y: auto; flex: 1; min-height: 0; padding: 1.5rem; }
 .edit-modal h2 { margin: 0 0 0.25rem; font-size: 1.25rem; }
 .edit-modal-desc { margin: 0 0 1rem; font-size: 0.875rem; color: var(--text-secondary); }
 .edit-modal .form-group { margin-bottom: 1rem; }
@@ -414,6 +415,9 @@ body {
 .edit-modal .form-error { color: #dc2626; font-size: 0.875rem; margin-top: 0.25rem; display: none; }
 .edit-modal .form-error.visible { display: block; }
 .edit-modal input.input-error { border-color: #dc2626; }
+.edit-modal textarea { width: 100%; padding: 0.5rem 0.75rem; font: inherit; border: 1px solid var(--border); border-radius: var(--radius); resize: vertical; min-height: 4rem; }
+.edit-modal .social-fieldset { border: none; margin: 0 0 1rem; padding: 0; }
+.edit-modal .social-fieldset legend { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.5rem; color: var(--text-primary); }
 .edit-modal-actions { margin-top: 1.25rem; display: flex; gap: 0.5rem; justify-content: flex-end; }
 .login-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
 .login-modal.open { display: flex; }

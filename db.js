@@ -134,12 +134,37 @@ async function initDb() {
     }
   }
 
-  return { insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, getRecentRegistrations, getUserById, deleteUser, updateUser, getShareInfo, updateShareInfo };
+  var profCols = ['prof_employer_name', 'prof_employer_phone', 'prof_employer_address', 'prof_employee_title', 'prof_years_worked'];
+  for (var j = 0; j < profCols.length; j++) {
+    currentCols = db.exec('PRAGMA table_info(users)')[0].values.map(function (r) { return r[1]; });
+    if (currentCols.indexOf(profCols[j]) === -1) {
+      db.run('ALTER TABLE users ADD COLUMN ' + profCols[j] + ' TEXT');
+      save();
+    }
+  }
+  var bizCols = ['biz_name', 'biz_description', 'biz_address', 'biz_website', 'biz_phone', 'biz_create_date', 'biz_social_facebook', 'biz_social_instagram', 'biz_social_twitter', 'biz_social_tiktok'];
+  for (var k = 0; k < bizCols.length; k++) {
+    currentCols = db.exec('PRAGMA table_info(users)')[0].values.map(function (r) { return r[1]; });
+    if (currentCols.indexOf(bizCols[k]) === -1) {
+      db.run('ALTER TABLE users ADD COLUMN ' + bizCols[k] + ' TEXT');
+      save();
+    }
+  }
+  var acadCols = ['acad_education', 'acad_graduated_from', 'acad_field_pursued', 'acad_highest_level', 'acad_years_attended', 'acad_currently_enrolled'];
+  for (var m = 0; m < acadCols.length; m++) {
+    currentCols = db.exec('PRAGMA table_info(users)')[0].values.map(function (r) { return r[1]; });
+    if (currentCols.indexOf(acadCols[m]) === -1) {
+      db.run('ALTER TABLE users ADD COLUMN ' + acadCols[m] + ' TEXT');
+      save();
+    }
+  }
+
+  return { insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, getRecentRegistrations, getUserById, deleteUser, updateUser, getShareInfo, updateShareInfo, updateProfessionalInfo, updateBusinessInfo, updateAcademicsInfo };
 }
 
 function getUserById(id) {
   return queryOne(
-    'SELECT id, email, first_name, last_name, country_code, phone, username, display_name, created_at, share_name_prefix, share_name, share_email, share_country_code, share_phone, share_street, share_city, share_state, share_postal_code FROM users WHERE id = ?',
+    'SELECT id, email, first_name, last_name, country_code, phone, username, display_name, created_at, share_name_prefix, share_name, share_email, share_country_code, share_phone, share_street, share_city, share_state, share_postal_code, prof_employer_name, prof_employer_phone, prof_employer_address, prof_employee_title, prof_years_worked, biz_name, biz_description, biz_address, biz_website, biz_phone, biz_create_date, biz_social_facebook, biz_social_instagram, biz_social_twitter, biz_social_tiktok, acad_education, acad_graduated_from, acad_field_pursued, acad_highest_level, acad_years_attended, acad_currently_enrolled FROM users WHERE id = ?',
     [id]
   );
 }
@@ -159,7 +184,7 @@ function updateUser(id, data) {
 function getRecentRegistrations(limit) {
   const n = Math.min(Number(limit) || 50, 500);
   return queryAll(
-    'SELECT id, email, first_name, last_name, username, phone, created_at, locked_until, share_name_prefix, share_name, share_email, share_country_code, share_phone, share_street, share_city, share_state, share_postal_code FROM users ORDER BY created_at DESC LIMIT ?',
+    'SELECT id, email, first_name, last_name, username, phone, created_at, locked_until, share_name_prefix, share_name, share_email, share_country_code, share_phone, share_street, share_city, share_state, share_postal_code, prof_employer_name, prof_employer_phone, prof_employer_address, prof_employee_title, prof_years_worked, biz_name, biz_description, biz_address, biz_website, biz_phone, biz_create_date, biz_social_facebook, biz_social_instagram, biz_social_twitter, biz_social_tiktok, acad_education, acad_graduated_from, acad_field_pursued, acad_highest_level, acad_years_attended, acad_currently_enrolled FROM users ORDER BY created_at DESC LIMIT ?',
     [n]
   );
 }
@@ -232,6 +257,31 @@ function updateShareInfo(userId, data) {
       data.share_postal_code != null ? String(data.share_postal_code).trim() : null,
       userId
     ]
+  );
+}
+
+function trimVal(v) {
+  return v != null ? String(v).trim() : null;
+}
+
+function updateProfessionalInfo(userId, data) {
+  runSql(
+    'UPDATE users SET prof_employer_name = ?, prof_employer_phone = ?, prof_employer_address = ?, prof_employee_title = ?, prof_years_worked = ? WHERE id = ?',
+    [trimVal(data.prof_employer_name), trimVal(data.prof_employer_phone), trimVal(data.prof_employer_address), trimVal(data.prof_employee_title), trimVal(data.prof_years_worked), userId]
+  );
+}
+
+function updateBusinessInfo(userId, data) {
+  runSql(
+    'UPDATE users SET biz_name = ?, biz_description = ?, biz_address = ?, biz_website = ?, biz_phone = ?, biz_create_date = ?, biz_social_facebook = ?, biz_social_instagram = ?, biz_social_twitter = ?, biz_social_tiktok = ? WHERE id = ?',
+    [trimVal(data.biz_name), trimVal(data.biz_description), trimVal(data.biz_address), trimVal(data.biz_website), trimVal(data.biz_phone), trimVal(data.biz_create_date), trimVal(data.biz_social_facebook), trimVal(data.biz_social_instagram), trimVal(data.biz_social_twitter), trimVal(data.biz_social_tiktok), userId]
+  );
+}
+
+function updateAcademicsInfo(userId, data) {
+  runSql(
+    'UPDATE users SET acad_education = ?, acad_graduated_from = ?, acad_field_pursued = ?, acad_highest_level = ?, acad_years_attended = ?, acad_currently_enrolled = ? WHERE id = ?',
+    [trimVal(data.acad_education), trimVal(data.acad_graduated_from), trimVal(data.acad_field_pursued), trimVal(data.acad_highest_level), trimVal(data.acad_years_attended), trimVal(data.acad_currently_enrolled), userId]
   );
 }
 

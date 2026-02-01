@@ -54,9 +54,11 @@
 
     <div id="share-info-modal" class="edit-modal" aria-hidden="true">
       <div class="edit-modal-inner">
-        <h2>Information to share</h2>
-        <p class="edit-modal-desc">Add the details you want to show when someone scans your QR code.</p>
-        <form id="share-info-form">
+        <div class="edit-modal-scroll">
+          <h2 id="share-info-modal-title">Information to share</h2>
+          <p class="edit-modal-desc" id="share-info-modal-desc">Add the details you want to show when someone scans your QR code.</p>
+
+          <form id="share-info-form" class="share-section-form" data-section="personal">
           <div class="form-group">
             <label for="share-name-prefix">Name</label>
             <div class="name-row">
@@ -126,6 +128,124 @@
             <button type="submit" class="btn btn-primary btn-small">Save</button>
           </div>
         </form>
+
+        <form id="professional-info-form" class="share-section-form" data-section="professional" style="display: none;">
+          <div class="form-group">
+            <label for="prof-employer-name">Employer name</label>
+            <input type="text" id="prof-employer-name" name="prof_employer_name" placeholder="Company or organization name">
+          </div>
+          <div class="form-group">
+            <label for="prof-employer-phone">Employer phone number</label>
+            <input type="tel" id="prof-employer-phone" name="prof_employer_phone" placeholder="Employer contact number">
+          </div>
+          <div class="form-group">
+            <label for="prof-employer-address">Employer address</label>
+            <input type="text" id="prof-employer-address" name="prof_employer_address" placeholder="Full employer address">
+          </div>
+          <div class="form-group">
+            <label for="prof-employee-title">Employee title</label>
+            <input type="text" id="prof-employee-title" name="prof_employee_title" placeholder="Your job title">
+          </div>
+          <div class="form-group">
+            <label for="prof-years-worked">Years worked</label>
+            <input type="text" id="prof-years-worked" name="prof_years_worked" placeholder="e.g. 5 years">
+          </div>
+          <div class="edit-modal-actions">
+            <button type="button" class="btn btn-secondary btn-small share-section-cancel">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-small">Save</button>
+          </div>
+        </form>
+
+        <form id="business-info-form" class="share-section-form" data-section="business" style="display: none;">
+          <div class="form-group">
+            <label for="biz-name">Business name</label>
+            <input type="text" id="biz-name" name="biz_name" placeholder="Your business name">
+          </div>
+          <div class="form-group">
+            <label for="biz-description">Business description</label>
+            <textarea id="biz-description" name="biz_description" rows="3" placeholder="What does your business do?"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="biz-address">Business address</label>
+            <input type="text" id="biz-address" name="biz_address" placeholder="Business location">
+          </div>
+          <div class="form-group">
+            <label for="biz-website">Business website</label>
+            <input type="url" id="biz-website" name="biz_website" placeholder="https://example.com">
+          </div>
+          <div class="form-group">
+            <label for="biz-phone">Business phone number</label>
+            <input type="tel" id="biz-phone" name="biz_phone" placeholder="Business contact number">
+          </div>
+          <div class="form-group">
+            <label for="biz-create-date">Business create date</label>
+            <input type="date" id="biz-create-date" name="biz_create_date" placeholder="When was the business founded?">
+          </div>
+          <fieldset class="form-group social-fieldset">
+            <legend>Social media</legend>
+            <div class="form-group">
+              <label for="biz-social-facebook">Facebook</label>
+              <input type="url" id="biz-social-facebook" name="biz_social_facebook" placeholder="Facebook page URL">
+            </div>
+            <div class="form-group">
+              <label for="biz-social-instagram">Instagram</label>
+              <input type="url" id="biz-social-instagram" name="biz_social_instagram" placeholder="Instagram profile URL">
+            </div>
+            <div class="form-group">
+              <label for="biz-social-twitter">Twitter</label>
+              <input type="url" id="biz-social-twitter" name="biz_social_twitter" placeholder="Twitter / X profile URL">
+            </div>
+            <div class="form-group">
+              <label for="biz-social-tiktok">TikTok</label>
+              <input type="url" id="biz-social-tiktok" name="biz_social_tiktok" placeholder="TikTok profile URL">
+            </div>
+          </fieldset>
+          <div class="edit-modal-actions">
+            <button type="button" class="btn btn-secondary btn-small share-section-cancel">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-small">Save</button>
+          </div>
+        </form>
+
+        <form id="academics-info-form" class="share-section-form" data-section="academics" style="display: none;">
+          <div class="form-group">
+            <label for="acad-education">Education</label>
+            <input type="text" id="acad-education" name="acad_education" placeholder="School or institution name">
+          </div>
+          <div class="form-group">
+            <label for="acad-graduated-from">Graduated from</label>
+            <input type="text" id="acad-graduated-from" name="acad_graduated_from" placeholder="Institution you graduated from">
+          </div>
+          <div class="form-group">
+            <label for="acad-field-pursued">Field pursued</label>
+            <input type="text" id="acad-field-pursued" name="acad_field_pursued" placeholder="e.g. Computer Science, Business">
+          </div>
+          <div class="form-group">
+            <label for="acad-highest-level">Highest level of education reached</label>
+            <select id="acad-highest-level" name="acad_highest_level" aria-label="Highest education level">
+              <option value="">—</option>
+              <option value="High school">High school</option>
+              <option value="Associate">Associate degree</option>
+              <option value="Bachelor's">Bachelor's degree</option>
+              <option value="Master's">Master's degree</option>
+              <option value="Doctorate">Doctorate</option>
+              <option value="Professional">Professional degree</option>
+              <option value="Certificate">Certificate / Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="acad-years-attended">Years attended</label>
+            <input type="text" id="acad-years-attended" name="acad_years_attended" placeholder="e.g. 2015–2019">
+          </div>
+          <div class="form-group">
+            <label for="acad-currently-enrolled">Currently enrolled in</label>
+            <input type="text" id="acad-currently-enrolled" name="acad_currently_enrolled" placeholder="Current program or institution if applicable">
+          </div>
+          <div class="edit-modal-actions">
+            <button type="button" class="btn btn-secondary btn-small share-section-cancel">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-small">Save</button>
+          </div>
+        </form>
+        </div>
       </div>
     </div>
   </main>
@@ -187,13 +307,14 @@
         document.getElementById('share-info-edit-link').textContent = 'Edit ' + label + ' information';
       }
 
+      var currentProfile = 'personal';
       document.querySelectorAll('.btn-funnel').forEach(function (btn) {
         btn.addEventListener('click', function () {
           document.querySelectorAll('.btn-funnel').forEach(function (b) { b.classList.remove('selected'); });
           this.classList.add('selected');
-          var profile = this.getAttribute('data-funnel');
-          setQrFor(profile);
-          setEditLinkText(profile);
+          currentProfile = this.getAttribute('data-funnel');
+          setQrFor(currentProfile);
+          setEditLinkText(currentProfile);
         });
       });
 
@@ -201,9 +322,72 @@
       setEditLinkText('personal');
 
       var shareInfoModal = document.getElementById('share-info-modal');
+      var shareInfoModalTitle = document.getElementById('share-info-modal-title');
+      var shareInfoModalDesc = document.getElementById('share-info-modal-desc');
       var shareInfoForm = document.getElementById('share-info-form');
       var shareEmailInput = document.getElementById('share-email');
       var shareEmailError = document.getElementById('share-email-error');
+      var sectionFormTitles = {
+        personal: { title: 'Information to share', desc: 'Add the details you want to show when someone scans your QR code.' },
+        professional: { title: 'Work details', desc: 'Add your professional work information to share.' },
+        business: { title: 'Business details', desc: 'Add your business information to share.' },
+        academics: { title: 'Academic details', desc: 'Add your education information to share.' }
+      };
+
+      function showSectionForm(section) {
+        document.querySelectorAll('.share-section-form').forEach(function (form) {
+          form.style.display = form.getAttribute('data-section') === section ? 'block' : 'none';
+        });
+        var meta = sectionFormTitles[section] || sectionFormTitles.personal;
+        shareInfoModalTitle.textContent = meta.title;
+        shareInfoModalDesc.textContent = meta.desc;
+      }
+
+      function fillSectionForm(section, user) {
+        var u = user || {};
+        if (section === 'personal') {
+          document.getElementById('share-name-prefix').value = u.share_name_prefix || '';
+          document.getElementById('share-name').value = u.share_name || '';
+          document.getElementById('share-email').value = u.share_email || u.email || '';
+          document.getElementById('share-country-code').value = u.share_country_code || u.country_code || '+1';
+          document.getElementById('share-phone').value = u.share_phone || u.phone || '';
+          document.getElementById('share-street').value = u.share_street || '';
+          document.getElementById('share-city').value = u.share_city || '';
+          document.getElementById('share-state').value = u.share_state || '';
+          document.getElementById('share-postal').value = u.share_postal_code || '';
+          hideShareEmailError();
+        } else if (section === 'professional') {
+          document.getElementById('prof-employer-name').value = u.prof_employer_name || '';
+          document.getElementById('prof-employer-phone').value = u.prof_employer_phone || '';
+          document.getElementById('prof-employer-address').value = u.prof_employer_address || '';
+          document.getElementById('prof-employee-title').value = u.prof_employee_title || '';
+          document.getElementById('prof-years-worked').value = u.prof_years_worked || '';
+        } else if (section === 'business') {
+          document.getElementById('biz-name').value = u.biz_name || '';
+          document.getElementById('biz-description').value = u.biz_description || '';
+          document.getElementById('biz-address').value = u.biz_address || '';
+          document.getElementById('biz-website').value = u.biz_website || '';
+          document.getElementById('biz-phone').value = u.biz_phone || '';
+          document.getElementById('biz-create-date').value = u.biz_create_date || '';
+          document.getElementById('biz-social-facebook').value = u.biz_social_facebook || '';
+          document.getElementById('biz-social-instagram').value = u.biz_social_instagram || '';
+          document.getElementById('biz-social-twitter').value = u.biz_social_twitter || '';
+          document.getElementById('biz-social-tiktok').value = u.biz_social_tiktok || '';
+        } else if (section === 'academics') {
+          document.getElementById('acad-education').value = u.acad_education || '';
+          document.getElementById('acad-graduated-from').value = u.acad_graduated_from || '';
+          document.getElementById('acad-field-pursued').value = u.acad_field_pursued || '';
+          document.getElementById('acad-highest-level').value = u.acad_highest_level || '';
+          document.getElementById('acad-years-attended').value = u.acad_years_attended || '';
+          document.getElementById('acad-currently-enrolled').value = u.acad_currently_enrolled || '';
+        }
+      }
+
+      function closeModal() {
+        shareInfoModal.classList.remove('open');
+        shareInfoModal.setAttribute('aria-hidden', 'true');
+        hideShareEmailError();
+      }
 
       function isValidEmail(str) {
         if (!str || typeof str !== 'string') return false;
@@ -228,25 +412,15 @@
 
       document.getElementById('share-info-edit-link').addEventListener('click', function (e) {
         e.preventDefault();
+        showSectionForm(currentProfile);
+        fillSectionForm(currentProfile, currentUser);
         shareInfoModal.classList.add('open');
         shareInfoModal.setAttribute('aria-hidden', 'false');
-        var u = currentUser || {};
-        document.getElementById('share-name-prefix').value = u.share_name_prefix || '';
-        document.getElementById('share-name').value = u.share_name || '';
-        document.getElementById('share-email').value = u.share_email || u.email || '';
-        document.getElementById('share-country-code').value = u.share_country_code || u.country_code || '+1';
-        document.getElementById('share-phone').value = u.share_phone || u.phone || '';
-        document.getElementById('share-street').value = u.share_street || '';
-        document.getElementById('share-city').value = u.share_city || '';
-        document.getElementById('share-state').value = u.share_state || '';
-        document.getElementById('share-postal').value = u.share_postal_code || '';
-        hideShareEmailError();
       });
 
-      document.getElementById('share-info-cancel').addEventListener('click', function () {
-        shareInfoModal.classList.remove('open');
-        shareInfoModal.setAttribute('aria-hidden', 'true');
-        hideShareEmailError();
+      document.getElementById('share-info-cancel').addEventListener('click', closeModal);
+      document.querySelectorAll('.share-section-cancel').forEach(function (btn) {
+        btn.addEventListener('click', closeModal);
       });
 
       shareEmailInput.addEventListener('blur', function () {
@@ -294,8 +468,7 @@
                 currentUser.share_state = data.share_state;
                 currentUser.share_postal_code = data.share_postal_code;
               }
-              shareInfoModal.classList.remove('open');
-              shareInfoModal.setAttribute('aria-hidden', 'true');
+              closeModal();
             } else {
               showShareEmailError(res.error || 'Failed to save.');
             }
@@ -303,6 +476,117 @@
           .catch(function () {
             showShareEmailError('Unable to reach server. Please try again.');
           });
+      });
+
+      document.getElementById('professional-info-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var data = {
+          prof_employer_name: document.getElementById('prof-employer-name').value.trim(),
+          prof_employer_phone: document.getElementById('prof-employer-phone').value.trim(),
+          prof_employer_address: document.getElementById('prof-employer-address').value.trim(),
+          prof_employee_title: document.getElementById('prof-employee-title').value.trim(),
+          prof_years_worked: document.getElementById('prof-years-worked').value.trim()
+        };
+        fetch('/api/me/professional-info', {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (res) {
+            if (res.ok) {
+              if (currentUser) {
+                currentUser.prof_employer_name = data.prof_employer_name;
+                currentUser.prof_employer_phone = data.prof_employer_phone;
+                currentUser.prof_employer_address = data.prof_employer_address;
+                currentUser.prof_employee_title = data.prof_employee_title;
+                currentUser.prof_years_worked = data.prof_years_worked;
+              }
+              closeModal();
+            } else {
+              alert(res.error || 'Failed to save professional info.');
+            }
+          })
+          .catch(function () { alert('Unable to reach server. Please try again.'); });
+      });
+
+      document.getElementById('business-info-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var data = {
+          biz_name: document.getElementById('biz-name').value.trim(),
+          biz_description: document.getElementById('biz-description').value.trim(),
+          biz_address: document.getElementById('biz-address').value.trim(),
+          biz_website: document.getElementById('biz-website').value.trim(),
+          biz_phone: document.getElementById('biz-phone').value.trim(),
+          biz_create_date: document.getElementById('biz-create-date').value || '',
+          biz_social_facebook: document.getElementById('biz-social-facebook').value.trim(),
+          biz_social_instagram: document.getElementById('biz-social-instagram').value.trim(),
+          biz_social_twitter: document.getElementById('biz-social-twitter').value.trim(),
+          biz_social_tiktok: document.getElementById('biz-social-tiktok').value.trim()
+        };
+        fetch('/api/me/business-info', {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (res) {
+            if (res.ok) {
+              if (currentUser) {
+                currentUser.biz_name = data.biz_name;
+                currentUser.biz_description = data.biz_description;
+                currentUser.biz_address = data.biz_address;
+                currentUser.biz_website = data.biz_website;
+                currentUser.biz_phone = data.biz_phone;
+                currentUser.biz_create_date = data.biz_create_date;
+                currentUser.biz_social_facebook = data.biz_social_facebook;
+                currentUser.biz_social_instagram = data.biz_social_instagram;
+                currentUser.biz_social_twitter = data.biz_social_twitter;
+                currentUser.biz_social_tiktok = data.biz_social_tiktok;
+              }
+              closeModal();
+            } else {
+              alert(res.error || 'Failed to save business info.');
+            }
+          })
+          .catch(function () { alert('Unable to reach server. Please try again.'); });
+      });
+
+      document.getElementById('academics-info-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var data = {
+          acad_education: document.getElementById('acad-education').value.trim(),
+          acad_graduated_from: document.getElementById('acad-graduated-from').value.trim(),
+          acad_field_pursued: document.getElementById('acad-field-pursued').value.trim(),
+          acad_highest_level: document.getElementById('acad-highest-level').value,
+          acad_years_attended: document.getElementById('acad-years-attended').value.trim(),
+          acad_currently_enrolled: document.getElementById('acad-currently-enrolled').value.trim()
+        };
+        fetch('/api/me/academics-info', {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (res) {
+            if (res.ok) {
+              if (currentUser) {
+                currentUser.acad_education = data.acad_education;
+                currentUser.acad_graduated_from = data.acad_graduated_from;
+                currentUser.acad_field_pursued = data.acad_field_pursued;
+                currentUser.acad_highest_level = data.acad_highest_level;
+                currentUser.acad_years_attended = data.acad_years_attended;
+                currentUser.acad_currently_enrolled = data.acad_currently_enrolled;
+              }
+              closeModal();
+            } else {
+              alert(res.error || 'Failed to save academics info.');
+            }
+          })
+          .catch(function () { alert('Unable to reach server. Please try again.'); });
       });
     })();
   </script>

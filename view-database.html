@@ -37,7 +37,7 @@
   <main class="main">
     <section class="db-section">
       <h1>Database contents</h1>
-      <p class="subtitle">All data currently stored in the application database (read-only). Share info columns (prefix, name, email, phone, address) are filled when a user saves from the Dashboard → Edit form.</p>
+      <p class="subtitle">All data currently stored in the application database (read-only). Share info (personal, professional, business, academics) is filled when a user saves from the Dashboard → Edit form.</p>
       <div id="db-content">
         <p class="db-empty">Loading…</p>
       </div>
@@ -99,12 +99,22 @@
           setContent(summaryHtml + '<p class="db-empty">No rows in <strong>users</strong> table yet.</p>');
           return;
         }
-        var cols = ['id', 'email', 'first_name', 'last_name', 'username', 'phone', 'created_at', 'locked_until', 'status', 'share_name_prefix', 'share_name', 'share_email', 'share_country_code', 'share_phone', 'share_street', 'share_city', 'share_state', 'share_postal_code'];
+        var cols = [
+          'id', 'email', 'first_name', 'last_name', 'username', 'phone', 'created_at', 'locked_until', 'status',
+          'share_name_prefix', 'share_name', 'share_email', 'share_country_code', 'share_phone', 'share_street', 'share_city', 'share_state', 'share_postal_code',
+          'prof_employer_name', 'prof_employer_phone', 'prof_employer_address', 'prof_employee_title', 'prof_years_worked',
+          'biz_name', 'biz_description', 'biz_address', 'biz_website', 'biz_phone', 'biz_create_date', 'biz_social_facebook', 'biz_social_instagram', 'biz_social_twitter', 'biz_social_tiktok',
+          'acad_education', 'acad_graduated_from', 'acad_field_pursued', 'acad_highest_level', 'acad_years_attended', 'acad_currently_enrolled'
+        ];
         var labels = {
           id: 'ID', email: 'Email', first_name: 'First name', last_name: 'Last name', username: 'Username', phone: 'Phone',
           created_at: 'Created', locked_until: 'Locked until', status: 'Status',
           share_name_prefix: 'Share prefix', share_name: 'Share name', share_email: 'Share email', share_country_code: 'Share country', share_phone: 'Share phone',
-          share_street: 'Street', share_city: 'City', share_state: 'State', share_postal_code: 'Postal code'
+          share_street: 'Street', share_city: 'City', share_state: 'State', share_postal_code: 'Postal code',
+          prof_employer_name: 'Prof: Employer', prof_employer_phone: 'Prof: Employer phone', prof_employer_address: 'Prof: Employer address', prof_employee_title: 'Prof: Title', prof_years_worked: 'Prof: Years worked',
+          biz_name: 'Biz: Name', biz_description: 'Biz: Description', biz_address: 'Biz: Address', biz_website: 'Biz: Website', biz_phone: 'Biz: Phone', biz_create_date: 'Biz: Create date',
+          biz_social_facebook: 'Biz: Facebook', biz_social_instagram: 'Biz: Instagram', biz_social_twitter: 'Biz: Twitter', biz_social_tiktok: 'Biz: TikTok',
+          acad_education: 'Acad: Education', acad_graduated_from: 'Acad: Graduated from', acad_field_pursued: 'Acad: Field', acad_highest_level: 'Acad: Highest level', acad_years_attended: 'Acad: Years attended', acad_currently_enrolled: 'Acad: Currently enrolled'
         };
         var thead = '<tr>' + cols.map(function (c) { return '<th>' + (labels[c] || c) + '</th>'; }).join('') + '</tr>';
         var rows = data.users.map(function (row) {
