@@ -159,7 +159,7 @@ async function initDb() {
     }
   }
 
-  return { insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, getRecentRegistrations, getUserById, deleteUser, updateUser, getShareInfo, updateShareInfo, updateProfessionalInfo, updateBusinessInfo, updateAcademicsInfo };
+  return { insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, getRecentRegistrations, getUserById, deleteUser, updateUser, updateAccountInfo, getShareInfo, updateShareInfo, updateProfessionalInfo, updateBusinessInfo, updateAcademicsInfo };
 }
 
 function getUserById(id) {
@@ -178,6 +178,24 @@ function updateUser(id, data) {
   runSql(
     'UPDATE users SET email = ?, email_hash = ?, first_name = ?, last_name = ?, phone = ?, username = ? WHERE id = ?',
     [data.email || null, emailHash, data.first_name || null, data.last_name || null, data.phone || null, data.username || null, id]
+  );
+}
+
+function updateAccountInfo(userId, data) {
+  const emailHash = data.email ? emailToHash(data.email) : null;
+  runSql(
+    'UPDATE users SET email = ?, email_hash = ?, first_name = ?, last_name = ?, country_code = ?, phone = ?, username = ?, display_name = ? WHERE id = ?',
+    [
+      data.email != null ? String(data.email).trim() : null,
+      emailHash,
+      data.first_name != null ? String(data.first_name).trim() : null,
+      data.last_name != null ? String(data.last_name).trim() : null,
+      data.country_code != null ? String(data.country_code).trim() : null,
+      data.phone != null ? String(data.phone).trim() : null,
+      data.username != null ? String(data.username).trim() : null,
+      data.display_name != null ? String(data.display_name).trim() : null,
+      userId
+    ]
   );
 }
 

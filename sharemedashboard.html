@@ -8,6 +8,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <style>
+    .settings-icon { display: inline-flex; align-items: center; padding: 0.25rem; margin-right: 0.25rem; color: var(--text-secondary); text-decoration: none; border-radius: var(--radius); }
+    .settings-icon:hover { color: var(--accent); background: var(--bg-page); }
+  </style>
 </head>
 <body>
   <header class="header">
@@ -20,6 +24,9 @@
           <span class="signup-text">Not a user, <a href="createuser.html" class="link">sign up here</a></span>
         </span>
         <span id="nav-auth" style="display: none;">
+          <a href="#" id="settings-icon" class="settings-icon" title="Account settings" aria-label="Account settings">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </a>
           <span class="nav-greeting">Hello, <span id="user-display-name"></span></span>
           <span class="nav-divider" aria-hidden="true">|</span>
           <a href="#" id="nav-logout" class="link">Logout</a>
@@ -248,6 +255,72 @@
         </div>
       </div>
     </div>
+
+    <div id="account-modal" class="edit-modal" aria-hidden="true">
+      <div class="edit-modal-inner">
+        <div class="edit-modal-scroll">
+          <h2>Account settings</h2>
+          <p class="edit-modal-desc">Update the information you provided during sign up.</p>
+          <form id="account-form">
+            <div class="form-group">
+              <label for="account-email">Email</label>
+              <input type="email" id="account-email" name="email" required placeholder="you@example.com" autocomplete="email">
+              <p class="form-error" id="account-email-error" role="alert" style="display: none;"></p>
+            </div>
+            <div class="form-group">
+              <label for="account-first-name">First name</label>
+              <input type="text" id="account-first-name" name="first_name" placeholder="First name" autocomplete="given-name">
+            </div>
+            <div class="form-group">
+              <label for="account-last-name">Last name</label>
+              <input type="text" id="account-last-name" name="last_name" placeholder="Last name" autocomplete="family-name">
+            </div>
+            <div class="form-group">
+              <label for="account-phone">Phone number</label>
+              <div class="phone-row">
+                <select id="account-country-code" name="country_code" aria-label="Country code">
+                  <option value="+1">+1</option>
+                  <option value="+44">+44</option>
+                  <option value="+91">+91</option>
+                  <option value="+61">+61</option>
+                  <option value="+81">+81</option>
+                  <option value="+49">+49</option>
+                  <option value="+33">+33</option>
+                  <option value="+39">+39</option>
+                  <option value="+34">+34</option>
+                  <option value="+55">+55</option>
+                  <option value="+86">+86</option>
+                  <option value="+7">+7</option>
+                  <option value="+82">+82</option>
+                  <option value="+31">+31</option>
+                  <option value="+41">+41</option>
+                  <option value="+46">+46</option>
+                  <option value="+27">+27</option>
+                  <option value="+52">+52</option>
+                  <option value="+353">+353</option>
+                  <option value="+64">+64</option>
+                </select>
+                <input type="tel" id="account-phone" name="phone" required placeholder="Phone number" autocomplete="tel">
+              </div>
+              <p class="form-error" id="account-phone-error" role="alert" style="display: none;"></p>
+            </div>
+            <div class="form-group">
+              <label for="account-username">Username</label>
+              <input type="text" id="account-username" name="username" required placeholder="Choose a username" autocomplete="username">
+              <p class="form-error" id="account-username-error" role="alert" style="display: none;"></p>
+            </div>
+            <div class="form-group">
+              <label for="account-display-name">Display name</label>
+              <input type="text" id="account-display-name" name="display_name" placeholder="How others see you" autocomplete="name">
+            </div>
+            <div class="edit-modal-actions">
+              <button type="button" class="btn btn-secondary btn-small" id="account-cancel">Cancel</button>
+              <button type="submit" class="btn btn-primary btn-small">Save</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   </main>
 
   <footer class="footer">
@@ -294,6 +367,110 @@
         e.preventDefault();
         fetch('/api/logout', { method: 'POST', credentials: 'include' })
           .then(function () { window.location.href = 'sharemelandingpage.html'; });
+      });
+
+      var accountModal = document.getElementById('account-modal');
+      var accountForm = document.getElementById('account-form');
+      var accountEmailInput = document.getElementById('account-email');
+      var accountEmailError = document.getElementById('account-email-error');
+      var accountPhoneInput = document.getElementById('account-phone');
+      var accountPhoneError = document.getElementById('account-phone-error');
+      var accountUsernameInput = document.getElementById('account-username');
+      var accountUsernameError = document.getElementById('account-username-error');
+
+      function showAccountError(id, msg) {
+        var el = document.getElementById('account-' + id + '-error');
+        if (el) {
+          el.textContent = msg || '';
+          el.style.display = msg ? 'block' : 'none';
+          document.getElementById('account-' + id).classList.toggle('input-error', !!msg);
+        }
+      }
+      function hideAccountErrors() {
+        showAccountError('email', '');
+        showAccountError('phone', '');
+        showAccountError('username', '');
+      }
+
+      document.getElementById('settings-icon').addEventListener('click', function (e) {
+        e.preventDefault();
+        var u = currentUser || {};
+        document.getElementById('account-email').value = u.email || '';
+        document.getElementById('account-first-name').value = u.first_name || '';
+        document.getElementById('account-last-name').value = u.last_name || '';
+        document.getElementById('account-country-code').value = u.country_code || '+1';
+        document.getElementById('account-phone').value = u.phone || '';
+        document.getElementById('account-username').value = u.username || '';
+        document.getElementById('account-display-name').value = u.display_name || '';
+        hideAccountErrors();
+        accountModal.classList.add('open');
+        accountModal.setAttribute('aria-hidden', 'false');
+      });
+
+      document.getElementById('account-cancel').addEventListener('click', function () {
+        accountModal.classList.remove('open');
+        accountModal.setAttribute('aria-hidden', 'true');
+        hideAccountErrors();
+      });
+
+      accountForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        hideAccountErrors();
+        var emailVal = accountEmailInput.value.trim();
+        var phoneVal = accountPhoneInput.value.trim();
+        var usernameVal = accountUsernameInput.value.trim();
+        var valid = true;
+        if (!emailVal || emailVal.indexOf('@') === -1) {
+          showAccountError('email', 'Please enter a valid email address.');
+          valid = false;
+        }
+        if (!phoneVal || phoneVal.replace(/\D/g, '').length < 7) {
+          showAccountError('phone', 'Phone number is required (at least 7 digits).');
+          valid = false;
+        }
+        if (!usernameVal || usernameVal.length < 2) {
+          showAccountError('username', 'Username is required (at least 2 characters).');
+          valid = false;
+        }
+        if (!valid) return;
+        var data = {
+          email: emailVal,
+          first_name: document.getElementById('account-first-name').value.trim(),
+          last_name: document.getElementById('account-last-name').value.trim(),
+          country_code: document.getElementById('account-country-code').value,
+          phone: phoneVal,
+          username: usernameVal,
+          display_name: document.getElementById('account-display-name').value.trim()
+        };
+        fetch('/api/me/account', {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (res) {
+            if (res.ok) {
+              if (currentUser) {
+                currentUser.email = data.email;
+                currentUser.first_name = data.first_name;
+                currentUser.last_name = data.last_name;
+                currentUser.country_code = data.country_code;
+                currentUser.phone = data.phone;
+                currentUser.username = data.username;
+                currentUser.display_name = data.display_name;
+              }
+              displayNameEl.textContent = displayName(currentUser);
+              accountModal.classList.remove('open');
+              accountModal.setAttribute('aria-hidden', 'true');
+              hideAccountErrors();
+            } else {
+              showAccountError('email', res.error || 'Failed to save.');
+            }
+          })
+          .catch(function () {
+            showAccountError('email', 'Unable to reach server. Please try again.');
+          });
       });
 
       function setQrFor(profile) {

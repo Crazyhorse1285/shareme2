@@ -4,7 +4,7 @@ const { getSessionUser } = require('../lib/auth');
 function match(req) {
   const p = req.urlPath || req.url.split('?')[0];
   return (req.method === 'GET' && p === '/api/me') ||
-    (req.method === 'PUT' && (p === '/api/me/share-info' || p === '/api/me/professional-info' || p === '/api/me/business-info' || p === '/api/me/academics-info'));
+    (req.method === 'PUT' && (p === '/api/me/share-info' || p === '/api/me/professional-info' || p === '/api/me/business-info' || p === '/api/me/academics-info' || p === '/api/me/account'));
 }
 
 async function handle(req, res, db) {
@@ -27,6 +27,7 @@ async function handle(req, res, db) {
           last_name: user.last_name,
           display_name: user.display_name,
           username: user.username,
+          country_code: user.country_code,
           share_name_prefix: user.share_name_prefix,
           share_name: user.share_name,
           share_email: user.share_email,
@@ -160,6 +161,51 @@ async function handle(req, res, db) {
     } catch (e) {
       console.error(e);
       sendJson(res, 500, { ok: false, error: 'Failed to save business info.' });
+    }
+    return;
+  }
+
+  if (req.method === 'PUT' && urlPath === '/api/me/account') {
+    try {
+      const userId = getSessionUser(req);
+      const user = userId ? db.getUserById(userId) : null;
+      if (!user) {
+        sendJson(res, 401, { ok: false, error: 'You must be logged in to update account info.' });
+        return;
+      }
+      const body = await parseBody(req);
+      if (!body || typeof body !== 'object') {
+        sendJson(res, 400, { ok: false, error: 'Invalid request body.' });
+        return;
+      }
+      const email = body.email != null ? String(body.email).trim() : null;
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        sendJson(res, 400, { ok: false, error: 'Please enter a valid email address.' });
+        return;
+      }
+      const phone = body.phone != null ? String(body.phone).trim() : null;
+      if (!phone || phone.length < 7) {
+        sendJson(res, 400, { ok: false, error: 'Phone number is required and must be at least 7 characters.' });
+        return;
+      }
+      const username = body.username != null ? String(body.username).trim() : null;
+      if (!username || username.length < 2) {
+        sendJson(res, 400, { ok: false, error: 'Username is required and must be at least 2 characters.' });
+        return;
+      }
+      db.updateAccountInfo(userId, {
+        email,
+        first_name: body.first_name,
+        last_name: body.last_name,
+        country_code: body.country_code,
+        phone,
+        username,
+        display_name: body.display_name
+      });
+      sendJson(res, 200, { ok: true, message: 'Account updated.' });
+    } catch (e) {
+      console.error(e);
+      sendJson(res, 500, { ok: false, error: 'Failed to update account.' });
     }
     return;
   }
