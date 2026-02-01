@@ -31,6 +31,11 @@
   <header class="header">
     <div class="header-inner">
       <a href="sharemelandingpage.html" class="logo">ShareMe</a>
+      <nav class="nav">
+        <a href="view-registrations.html" class="link">View registrations</a>
+        <span class="nav-divider" aria-hidden="true">|</span>
+        <a href="#" id="admin-logout" class="link">Logout</a>
+      </nav>
     </div>
   </header>
 
@@ -41,8 +46,7 @@
       <div id="db-content">
         <p class="db-empty">Loading…</p>
       </div>
-      <a href="sharemelandingpage.html" class="back-link">← Back to home</a>
-      <a href="view-registrations.html" class="back-link" style="margin-left: 1rem;">View registrations</a>
+      <a href="view-registrations.html" class="back-link">View registrations</a>
     </section>
   </main>
 
@@ -61,6 +65,12 @@
   <script>
     (function () {
       var content = document.getElementById('db-content');
+
+      document.getElementById('admin-logout').addEventListener('click', function (e) {
+        e.preventDefault();
+        fetch('/api/admin-logout', { method: 'POST', credentials: 'include' })
+          .then(function () { window.location.href = 'admin-login.html'; });
+      });
 
       function setContent(html) {
         content.innerHTML = html;

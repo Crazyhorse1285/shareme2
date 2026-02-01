@@ -201,15 +201,23 @@
         });
       });
 
-      fetch('/api/me', { credentials: 'include' })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-          if (data.ok && data.user) {
-            navGuest.style.display = 'none';
-            navAuth.style.display = '';
-            displayNameEl.textContent = displayName(data.user);
-          }
-        });
+      Promise.all([
+        fetch('/api/me', { credentials: 'include' }).then(function (r) { return r.json(); }),
+        fetch('/api/admin-check', { credentials: 'include' }).then(function (r) { return r.json(); })
+      ]).then(function (results) {
+        var meData = results[0];
+        var adminData = results[1];
+        var isAdmin = adminData.ok && adminData.admin;
+        var isConsumer = meData.ok && meData.user;
+        if (isAdmin) {
+          navGuest.style.display = '';
+          navAuth.style.display = 'none';
+        } else if (isConsumer) {
+          navGuest.style.display = 'none';
+          navAuth.style.display = '';
+          displayNameEl.textContent = displayName(meData.user);
+        }
+      });
 
       document.getElementById('nav-logout').addEventListener('click', function (e) {
         e.preventDefault();

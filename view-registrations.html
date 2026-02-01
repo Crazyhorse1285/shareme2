@@ -13,6 +13,11 @@
   <header class="header">
     <div class="header-inner">
       <a href="sharemelandingpage.html" class="logo">ShareMe</a>
+      <nav class="nav">
+        <a href="view-database.html" class="link">View database</a>
+        <span class="nav-divider" aria-hidden="true">|</span>
+        <a href="#" id="admin-logout" class="link">Logout</a>
+      </nav>
     </div>
   </header>
 
@@ -22,8 +27,7 @@
       <div id="registrations-content">
         <p class="registrations-empty">Loading…</p>
       </div>
-      <a href="sharemelandingpage.html" class="back-link">← Back to home</a>
-      <a href="view-database.html" class="back-link" style="margin-left: 1rem;">View database</a>
+      <a href="view-database.html" class="back-link">View database</a>
     </section>
 
     <div id="edit-modal" class="edit-modal" aria-hidden="true">
@@ -199,6 +203,12 @@
         }).catch(function () { alert('Request failed.'); });
       });
       document.getElementById('edit-cancel').addEventListener('click', closeModal);
+
+      document.getElementById('admin-logout').addEventListener('click', function (e) {
+        e.preventDefault();
+        fetch('/api/admin-logout', { method: 'POST', credentials: 'include' })
+          .then(function () { window.location.href = 'admin-login.html'; });
+      });
 
       loadRegistrations();
     })();

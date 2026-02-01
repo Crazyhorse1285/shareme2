@@ -2,13 +2,13 @@ const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const { sendJson, parseBody } = require('../lib/http');
-const { requireAdmin, adminSessions, setAdminSessionCookie, clearAdminSessionCookie, parseCookies, ADMIN_SESSION_COOKIE } = require('../lib/auth');
+const { requireAdmin, isAdminSession, adminSessions, setAdminSessionCookie, clearAdminSessionCookie, parseCookies, ADMIN_SESSION_COOKIE } = require('../lib/auth');
 const { MIME_TYPES } = require('../lib/config');
 
 function match(req) {
   const p = req.urlPath || req.url.split('?')[0];
   return (
-    (req.method === 'GET' && (p === '/api/registrations' || p === '/api/db')) ||
+    (req.method === 'GET' && (p === '/api/registrations' || p === '/api/db' || p === '/api/admin-check')) ||
     (req.method === 'POST' && (p === '/api/admin-login' || p === '/api/admin-logout')) ||
     (req.method === 'GET' && (p === '/view-registrations.html' || p === '/view-database.html'))
   );
@@ -61,6 +61,12 @@ async function handle(req, res, db) {
     if (sessionId) adminSessions.delete(sessionId);
     clearAdminSessionCookie(res);
     sendJson(res, 200, { ok: true });
+    return;
+  }
+
+  if (req.method === 'GET' && urlPath === '/api/admin-check') {
+    const admin = isAdminSession(req);
+    sendJson(res, 200, { ok: true, admin: !!admin });
     return;
   }
 
