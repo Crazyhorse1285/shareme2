@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const { sendJson, parseBody } = require('../lib/http');
 const { sessions, setSessionCookie, clearSessionCookie, parseCookies, SESSION_COOKIE, hashPassword, verifyPassword } = require('../lib/auth');
+const { sendPasswordResetEmail } = require('../lib/email');
 
 function match(req) {
   const p = req.urlPath || req.url.split('?')[0];
@@ -8,7 +9,8 @@ function match(req) {
     (req.method === 'POST' && p === '/api/logout') ||
     (req.method === 'POST' && p === '/api/login') ||
     (req.method === 'POST' && p === '/api/register') ||
-    (req.method === 'POST' && p === '/api/forgot-password')
+    (req.method === 'POST' && p === '/api/forgot-password') ||
+    (req.method === 'POST' && p === '/api/reset-password')
   );
 }
 
@@ -128,15 +130,48 @@ async function handle(req, res, db) {
         return;
       }
       const user = db.getAuthUserByEmail(email);
-      if (!user) {
-        sendJson(res, 400, { ok: false, error: 'Email does not exist.' });
+      if (user) {
+        const token = db.createPasswordResetToken(user.id);
+        await sendPasswordResetEmail(email, token);
+      }
+      sendJson(res, 200, { ok: true, message: 'If an account exists with that email, we\'ve sent instructions to reset your password.' });
+    } catch (e) {
+      console.error('Forgot password error:', e);
+      sendJson(res, 500, { ok: false, error: e.message && e.message.includes('not configured') ? 'Password reset email is not configured. Please contact support.' : 'Something went wrong. Please try again.' });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && urlPath === '/api/reset-password') {
+    try {
+      const body = await parseBody(req);
+      const token = (body.token != null && typeof body.token === 'string') ? String(body.token).trim() : '';
+      const password = body.password;
+      const passwordHash = body.passwordHash;
+      const hasHash = typeof passwordHash === 'string' && passwordHash.length === 64 && /^[a-f0-9]+$/i.test(passwordHash);
+      const hasPassword = typeof password === 'string' && password.length >= 10;
+      if (!token) {
+        sendJson(res, 400, { ok: false, error: 'Invalid or expired reset link.' });
         return;
       }
-      sendJson(res, 200, { ok: true, message: 'An email will be sent to the address you provided with instructions to reset your password.' });
+      if (!hasHash && !hasPassword) {
+        sendJson(res, 400, { ok: false, error: 'Password is required (at least 8 characters).' });
+        return;
+      }
+      const row = db.getPasswordResetToken(token);
+      if (!row) {
+        sendJson(res, 400, { ok: false, error: 'Invalid or expired reset link. Please request a new one.' });
+        return;
+      }
+      const toStore = hasHash ? hashPassword(passwordHash) : hashPassword(password);
+      db.updateUserPassword(row.user_id, toStore);
+      db.consumePasswordResetToken(token);
+      sendJson(res, 200, { ok: true, message: 'Your password has been reset. You can now log in.' });
     } catch (e) {
-      console.error(e);
+      console.error('Reset password error:', e);
       sendJson(res, 500, { ok: false, error: 'Something went wrong. Please try again.' });
     }
+    return;
   }
 }
 

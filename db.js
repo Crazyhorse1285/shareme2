@@ -159,7 +159,10 @@ async function initDb() {
     }
   }
 
-  return { insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, getRecentRegistrations, getUserById, deleteUser, updateUser, updateAccountInfo, getShareInfo, updateShareInfo, updateProfessionalInfo, updateBusinessInfo, updateAcademicsInfo };
+  db.run('CREATE TABLE IF NOT EXISTS password_reset_tokens (token TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires_at TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime(\'now\')), FOREIGN KEY (user_id) REFERENCES users(id))');
+  save();
+
+  return { insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, getRecentRegistrations, getUserById, deleteUser, updateUser, updateAccountInfo, getShareInfo, updateShareInfo, updateProfessionalInfo, updateBusinessInfo, updateAcademicsInfo, createPasswordResetToken, getPasswordResetToken, consumePasswordResetToken, updateUserPassword };
 }
 
 function getUserById(id) {
@@ -303,4 +306,33 @@ function updateAcademicsInfo(userId, data) {
   );
 }
 
-module.exports = { initDb, insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, emailToHash };
+function createPasswordResetToken(userId) {
+  runSql('DELETE FROM password_reset_tokens WHERE user_id = ?', [userId]);
+  var token = crypto.randomBytes(32).toString('hex');
+  var expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  runSql('INSERT INTO password_reset_tokens (token, user_id, expires_at) VALUES (?, ?, ?)', [token, userId, expiresAt]);
+  return token;
+}
+
+function getPasswordResetToken(token) {
+  if (!token || typeof token !== 'string') return null;
+  var row = queryOne('SELECT token, user_id, expires_at FROM password_reset_tokens WHERE token = ?', [token.trim()]);
+  if (!row) return null;
+  if (new Date(row.expires_at) <= new Date()) {
+    runSql('DELETE FROM password_reset_tokens WHERE token = ?', [token.trim()]);
+    return null;
+  }
+  return row;
+}
+
+function consumePasswordResetToken(token) {
+  if (!token || typeof token !== 'string') return false;
+  runSql('DELETE FROM password_reset_tokens WHERE token = ?', [token.trim()]);
+  return true;
+}
+
+function updateUserPassword(userId, passwordHash) {
+  runSql('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, userId]);
+}
+
+module.exports = { initDb, insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, emailToHash, createPasswordResetToken, getPasswordResetToken, consumePasswordResetToken, updateUserPassword };

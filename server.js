@@ -1,3 +1,4 @@
+require('dotenv').config();
 const http = require('http');
 const { PORT } = require('./lib/config');
 const usersRoute = require('./routes/users');
@@ -32,6 +33,7 @@ async function main() {
     console.log(`  Register: http://localhost:${PORT}/createuser.html`);
     console.log(`  Dashboard: http://localhost:${PORT}/sharemedashboard.html`);
     console.log(`  Forgot password: http://localhost:${PORT}/forgot-password.html`);
+    console.log(`  Reset password: http://localhost:${PORT}/reset-password.html`);
     console.log(`  Admin login: http://localhost:${PORT}/admin-login.html`);
     console.log('Press Ctrl+C to stop.');
   });

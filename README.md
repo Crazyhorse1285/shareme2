@@ -26,6 +26,21 @@ If port 3000 is in use, the server will try 3001, 3002, etc. You can also set a 
 
 4. **Stop the server**: Press `Ctrl+C` in the terminal.
 
+### Password reset (Forgot password)
+
+Password reset sends emails via [Resend](https://resend.com):
+
+1. Sign up at https://resend.com and create an API key.
+2. Set environment variables before starting the server:
+   ```powershell
+   $env:RESEND_API_KEY="re_xxxxxxxxxx"
+   $env:BASE_URL="http://localhost:3000"
+   node server.js
+   ```
+3. For production, set `BASE_URL` to your public URL (e.g. `https://yourdomain.com`) and optionally `RESEND_FROM` with a verified domain.
+
+See `.env.example` for all options.
+
 ### Admin (View registrations / View database)
 
 Only you (the sole admin) can open **View registrations** and **View database**. Use a separate admin login:
@@ -66,6 +81,8 @@ This folder was created as a **standalone** copy of ShareMe with no Unity files.
 
 - **sharemelandingpage.html** — Landing page
 - **createuser.html** — Sign-up / create account
+- **forgot-password.html** — Request password reset email
+- **reset-password.html** — Set new password (from email link)
 - **sharemedashboard.html** — Dashboard (profile selection)
 - **styles.css** — Shared styles
 

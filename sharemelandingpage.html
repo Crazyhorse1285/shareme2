@@ -8,6 +8,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <style>
+    .reset-success-banner { max-width: 420px; margin: 0 auto 1rem; padding: 0.75rem 1rem; background: #d1fae5; color: #065f46; border-radius: 12px; font-size: 0.9375rem; text-align: center; }
+  </style>
 </head>
 <body>
   <header class="header">
@@ -31,6 +34,7 @@
   </header>
 
   <main class="main">
+    <p id="reset-success-banner" class="reset-success-banner" role="status" style="display: none;">Your password has been reset. You can now log in.</p>
     <section class="hero">
       <div class="qr-container">
         <img
@@ -200,6 +204,12 @@
             });
         });
       });
+
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('reset') === 'success') {
+        document.getElementById('reset-success-banner').style.display = 'block';
+        window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+      }
 
       Promise.all([
         fetch('/api/me', { credentials: 'include' }).then(function (r) { return r.json(); }),
