@@ -10,13 +10,15 @@ function withUser(id, db, fn) {
 function match(req) {
   const path = req.urlPath || req.url.split('?')[0];
   const unlock = path.match(/^\/api\/users\/([^/]+)\/unlock$/);
+  const reactivate = path.match(/^\/api\/users\/([^/]+)\/reactivate$/);
   const usersId = path.match(/^\/api\/users\/([^/]+)$/);
-  return (unlock && req.method === 'POST') || (usersId && (req.method === 'GET' || req.method === 'DELETE' || req.method === 'PUT'));
+  return (unlock && req.method === 'POST') || (reactivate && req.method === 'POST') || (usersId && (req.method === 'GET' || req.method === 'DELETE' || req.method === 'PUT'));
 }
 
 async function handle(req, res, db) {
   const path = req.urlPath || req.url.split('?')[0];
   const unlockMatch = path.match(/^\/api\/users\/([^/]+)\/unlock$/);
+  const reactivateMatch = path.match(/^\/api\/users\/([^/]+)\/reactivate$/);
   const usersIdMatch = path.match(/^\/api\/users\/([^/]+)$/);
 
   if (unlockMatch && req.method === 'POST') {
@@ -33,6 +35,24 @@ async function handle(req, res, db) {
       } catch (e) {
         console.error(e);
         sendJson(res, 500, { ok: false, error: 'Failed to unlock user.' });
+      }
+    });
+  }
+
+  if (reactivateMatch && req.method === 'POST') {
+    const id = reactivateMatch[1];
+    return requireAdmin(req, res, () => {
+      try {
+        const user = db.getUserById(id);
+        if (!user) {
+          sendJson(res, 404, { ok: false, error: 'User not found.' });
+          return;
+        }
+        db.reactivateUser(id);
+        sendJson(res, 200, { ok: true, message: 'Account reactivated. User can log in again.' });
+      } catch (e) {
+        console.error(e);
+        sendJson(res, 500, { ok: false, error: 'Failed to reactivate user.' });
       }
     });
   }

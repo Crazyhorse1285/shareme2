@@ -138,13 +138,15 @@
         }
         var rows = registrations.map(function (row) {
           var locked = isLocked(row);
+          var status = row.status || row.STATUS;
+          var deactivated = status === 'deactivated';
           var cells = columns.map(function (c) {
             if (c.key === '_actions') {
               var unlockBtn = locked ? '<button type="button" class="btn btn-secondary btn-small unlock-btn" data-id="' + row.id + '" title="Clear login lock so user can sign in again">Unlock</button>' : '';
-              return '<td class="actions-cell"><div class="btn-row"><button type="button" class="btn btn-primary btn-small edit-btn" data-id="' + row.id + '">Edit</button><button type="button" class="btn btn-danger btn-small delete-btn" data-id="' + row.id + '">Delete</button>' + unlockBtn + '</div></td>';
+              var reactivateBtn = deactivated ? '<button type="button" class="btn btn-secondary btn-small reactivate-btn" data-id="' + row.id + '" title="Reactivate this account so user can log in again">Reactivate</button>' : '';
+              return '<td class="actions-cell"><div class="btn-row"><button type="button" class="btn btn-primary btn-small edit-btn" data-id="' + row.id + '">Edit</button><button type="button" class="btn btn-danger btn-small delete-btn" data-id="' + row.id + '">Delete</button>' + unlockBtn + reactivateBtn + '</div></td>';
             }
             if (c.key === 'locked_status') {
-              var status = row.status || row.STATUS;
               if (status === 'deactivated') return '<td><span class="status-deactivated">Deactivated</span></td>';
               if (locked) return '<td><span class="status-locked">Locked</span></td>';
               return '<td>—</td>';
@@ -157,13 +159,20 @@
       }
 
       content.addEventListener('click', function (e) {
-        var btn = e.target.closest('.edit-btn, .delete-btn, .unlock-btn');
+        var btn = e.target.closest('.edit-btn, .delete-btn, .unlock-btn, .reactivate-btn');
         if (!btn) return;
         var id = btn.getAttribute('data-id');
         if (btn.classList.contains('unlock-btn')) {
           api('POST', '/api/users/' + id + '/unlock').then(function (data) {
             if (data.ok) loadRegistrations();
             else alert(data.error || 'Unlock failed.');
+          }).catch(function () { alert('Request failed.'); });
+          return;
+        }
+        if (btn.classList.contains('reactivate-btn')) {
+          api('POST', '/api/users/' + id + '/reactivate').then(function (data) {
+            if (data.ok) loadRegistrations();
+            else alert(data.error || 'Reactivate failed.');
           }).catch(function () { alert('Request failed.'); });
           return;
         }
