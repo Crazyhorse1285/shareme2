@@ -158,18 +158,28 @@ async function initDb() {
       save();
     }
   }
+  currentCols = db.exec('PRAGMA table_info(users)')[0].values.map(function (r) { return r[1]; });
+  if (currentCols.indexOf('status') === -1) {
+    db.run('ALTER TABLE users ADD COLUMN status TEXT DEFAULT \'active\'');
+    runSql('UPDATE users SET status = ? WHERE status IS NULL', ['active']);
+    save();
+  }
 
   db.run('CREATE TABLE IF NOT EXISTS password_reset_tokens (token TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires_at TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime(\'now\')), FOREIGN KEY (user_id) REFERENCES users(id))');
   save();
 
-  return { insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, getRecentRegistrations, getUserById, deleteUser, updateUser, updateAccountInfo, getShareInfo, updateShareInfo, updateProfessionalInfo, updateBusinessInfo, updateAcademicsInfo, createPasswordResetToken, getPasswordResetToken, consumePasswordResetToken, updateUserPassword };
+  return { insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, getRecentRegistrations, getUserById, deleteUser, updateUser, updateAccountInfo, deactivateUser, getShareInfo, updateShareInfo, updateProfessionalInfo, updateBusinessInfo, updateAcademicsInfo, createPasswordResetToken, getPasswordResetToken, consumePasswordResetToken, updateUserPassword };
 }
 
 function getUserById(id) {
   return queryOne(
-    'SELECT id, email, first_name, last_name, country_code, phone, username, display_name, created_at, share_name_prefix, share_name, share_email, share_country_code, share_phone, share_street, share_city, share_state, share_postal_code, prof_employer_name, prof_employer_phone, prof_employer_address, prof_employee_title, prof_years_worked, biz_name, biz_description, biz_address, biz_website, biz_phone, biz_create_date, biz_social_facebook, biz_social_instagram, biz_social_twitter, biz_social_tiktok, acad_education, acad_graduated_from, acad_field_pursued, acad_highest_level, acad_years_attended, acad_currently_enrolled FROM users WHERE id = ?',
+    'SELECT id, email, first_name, last_name, country_code, phone, username, display_name, created_at, status, share_name_prefix, share_name, share_email, share_country_code, share_phone, share_street, share_city, share_state, share_postal_code, prof_employer_name, prof_employer_phone, prof_employer_address, prof_employee_title, prof_years_worked, biz_name, biz_description, biz_address, biz_website, biz_phone, biz_create_date, biz_social_facebook, biz_social_instagram, biz_social_twitter, biz_social_tiktok, acad_education, acad_graduated_from, acad_field_pursued, acad_highest_level, acad_years_attended, acad_currently_enrolled FROM users WHERE id = ?',
     [id]
   );
+}
+
+function deactivateUser(userId) {
+  runSql('UPDATE users SET status = ? WHERE id = ?', ['deactivated', userId]);
 }
 
 function deleteUser(id) {
@@ -205,7 +215,7 @@ function updateAccountInfo(userId, data) {
 function getRecentRegistrations(limit) {
   const n = Math.min(Number(limit) || 50, 500);
   return queryAll(
-    'SELECT id, email, first_name, last_name, display_name, username, phone, created_at, locked_until, share_name_prefix, share_name, share_email, share_country_code, share_phone, share_street, share_city, share_state, share_postal_code, prof_employer_name, prof_employer_phone, prof_employer_address, prof_employee_title, prof_years_worked, biz_name, biz_description, biz_address, biz_website, biz_phone, biz_create_date, biz_social_facebook, biz_social_instagram, biz_social_twitter, biz_social_tiktok, acad_education, acad_graduated_from, acad_field_pursued, acad_highest_level, acad_years_attended, acad_currently_enrolled FROM users ORDER BY created_at DESC LIMIT ?',
+    'SELECT id, email, first_name, last_name, display_name, username, phone, created_at, locked_until, status, share_name_prefix, share_name, share_email, share_country_code, share_phone, share_street, share_city, share_state, share_postal_code, prof_employer_name, prof_employer_phone, prof_employer_address, prof_employee_title, prof_years_worked, biz_name, biz_description, biz_address, biz_website, biz_phone, biz_create_date, biz_social_facebook, biz_social_instagram, biz_social_twitter, biz_social_tiktok, acad_education, acad_graduated_from, acad_field_pursued, acad_highest_level, acad_years_attended, acad_currently_enrolled FROM users ORDER BY created_at DESC LIMIT ?',
     [n]
   );
 }
@@ -214,8 +224,8 @@ function insertUser(user) {
   const id = crypto.randomUUID();
   const emailHash = emailToHash(user.email);
   db.run(
-    'INSERT INTO users (id, email, email_hash, first_name, last_name, country_code, phone, password_hash, display_name, username) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [id, user.email, emailHash, user.firstName || null, user.lastName || null, user.countryCode || null, user.phone, user.passwordHash, user.displayName || null, user.username || null]
+    'INSERT INTO users (id, email, email_hash, first_name, last_name, country_code, phone, password_hash, display_name, username, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [id, user.email, emailHash, user.firstName || null, user.lastName || null, user.countryCode || null, user.phone, user.passwordHash, user.displayName || null, user.username || null, 'active']
   );
   save();
   return id;
@@ -229,12 +239,12 @@ function getAuthUserByEmail(email) {
   if (!email || typeof email !== 'string') return null;
   var trimmed = email.trim().toLowerCase();
   if (!trimmed) return null;
-  return queryOne('SELECT id, email, password_hash, failed_login_attempts, locked_until FROM users WHERE LOWER(email) = ?', [trimmed]);
+  return queryOne('SELECT id, email, password_hash, failed_login_attempts, locked_until, status FROM users WHERE LOWER(email) = ?', [trimmed]);
 }
 
 function getAuthUserByEmailHash(emailHash) {
   if (!emailHash || typeof emailHash !== 'string' || emailHash.length !== 64 || !/^[a-f0-9]+$/i.test(emailHash)) return null;
-  return queryOne('SELECT id, email, password_hash, failed_login_attempts, locked_until FROM users WHERE email_hash = ?', [emailHash.toLowerCase()]);
+  return queryOne('SELECT id, email, password_hash, failed_login_attempts, locked_until, status FROM users WHERE email_hash = ?', [emailHash.toLowerCase()]);
 }
 
 const LOCKOUT_ATTEMPTS = 5;

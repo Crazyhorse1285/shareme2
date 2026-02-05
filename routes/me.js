@@ -1,10 +1,11 @@
 const { sendJson, parseBody } = require('../lib/http');
-const { getSessionUser } = require('../lib/auth');
+const { getSessionUser, sessions, clearSessionCookie, parseCookies, SESSION_COOKIE } = require('../lib/auth');
 
 function match(req) {
   const p = req.urlPath || req.url.split('?')[0];
   return (req.method === 'GET' && p === '/api/me') ||
-    (req.method === 'PUT' && (p === '/api/me/share-info' || p === '/api/me/professional-info' || p === '/api/me/business-info' || p === '/api/me/academics-info' || p === '/api/me/account'));
+    (req.method === 'PUT' && (p === '/api/me/share-info' || p === '/api/me/professional-info' || p === '/api/me/business-info' || p === '/api/me/academics-info' || p === '/api/me/account')) ||
+    (req.method === 'POST' && p === '/api/me/deactivate');
 }
 
 async function handle(req, res, db) {
@@ -235,6 +236,34 @@ async function handle(req, res, db) {
     } catch (e) {
       console.error(e);
       sendJson(res, 500, { ok: false, error: 'Failed to save academics info.' });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && urlPath === '/api/me/deactivate') {
+    try {
+      const userId = getSessionUser(req);
+      const user = userId ? db.getUserById(userId) : null;
+      if (!user) {
+        sendJson(res, 401, { ok: false, error: 'You must be logged in to deactivate your account.' });
+        return;
+      }
+      const body = await parseBody(req);
+      const email = body && body.email != null ? String(body.email).trim().toLowerCase() : '';
+      const userEmail = (user.email || '').trim().toLowerCase();
+      if (!email || email !== userEmail) {
+        sendJson(res, 400, { ok: false, error: 'Email does not match this account. Enter your current email to deactivate.' });
+        return;
+      }
+      db.deactivateUser(userId);
+      const cookies = parseCookies(req);
+      const sessionId = cookies[SESSION_COOKIE];
+      if (sessionId) sessions.delete(sessionId);
+      clearSessionCookie(res);
+      sendJson(res, 200, { ok: true, message: 'Account deactivated.' });
+    } catch (e) {
+      console.error(e);
+      sendJson(res, 500, { ok: false, error: 'Failed to deactivate account.' });
     }
   }
 }

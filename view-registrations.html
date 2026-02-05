@@ -144,7 +144,10 @@
               return '<td class="actions-cell"><div class="btn-row"><button type="button" class="btn btn-primary btn-small edit-btn" data-id="' + row.id + '">Edit</button><button type="button" class="btn btn-danger btn-small delete-btn" data-id="' + row.id + '">Delete</button>' + unlockBtn + '</div></td>';
             }
             if (c.key === 'locked_status') {
-              return '<td>' + (locked ? '<span class="status-locked">Locked</span>' : '—') + '</td>';
+              var status = row.status || row.STATUS;
+              if (status === 'deactivated') return '<td><span class="status-deactivated">Deactivated</span></td>';
+              if (locked) return '<td><span class="status-locked">Locked</span></td>';
+              return '<td>—</td>';
             }
             return '<td>' + cellVal(row, c.key) + '</td>';
           }).join('');

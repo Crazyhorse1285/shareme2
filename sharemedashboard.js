@@ -64,6 +64,38 @@
     hideAccountErrors();
   }
 
+  function closeDeactivateModal() {
+    dom.deactivateModal.classList.remove('open');
+    dom.deactivateModal.setAttribute('aria-hidden', 'true');
+    if (dom.deactivateEmailInput) dom.deactivateEmailInput.value = '';
+    if (dom.deactivateEmailError) {
+      dom.deactivateEmailError.style.display = 'none';
+      dom.deactivateEmailError.textContent = '';
+    }
+    if (dom.deactivateEmailInput) dom.deactivateEmailInput.classList.remove('input-error');
+  }
+
+  function openDeactivateModal() {
+    if (currentUser && currentUser.email) dom.deactivateEmailInput.value = '';
+    hideDeactivateError();
+    openModal(dom.deactivateModal);
+  }
+
+  function showDeactivateError(msg) {
+    if (!dom.deactivateEmailError) return;
+    dom.deactivateEmailError.textContent = msg || 'Email does not match this account.';
+    dom.deactivateEmailError.style.display = 'block';
+    dom.deactivateEmailInput.classList.add('input-error');
+  }
+
+  function hideDeactivateError() {
+    if (dom.deactivateEmailError) {
+      dom.deactivateEmailError.style.display = 'none';
+      dom.deactivateEmailError.textContent = '';
+    }
+    if (dom.deactivateEmailInput) dom.deactivateEmailInput.classList.remove('input-error');
+  }
+
   function showShareEmailError(msg) {
     dom.shareEmailError.textContent = msg || 'Please enter a valid email address.';
     dom.shareEmailError.style.display = 'block';
@@ -317,6 +349,9 @@
     dom.shareEmailInput = getEl('share-email');
     dom.shareEmailError = getEl('share-email-error');
     dom.accountModal = getEl('account-modal');
+    dom.deactivateModal = getEl('deactivate-modal');
+    dom.deactivateEmailInput = getEl('deactivate-email');
+    dom.deactivateEmailError = getEl('deactivate-email-error');
   }
 
   function bindEvents() {
@@ -342,6 +377,35 @@
 
     getEl('account-cancel').addEventListener('click', closeAccountModal);
     dom.accountModal.querySelector('form').addEventListener('submit', handleSaveAccount);
+
+    getEl('deactivate-account-link').addEventListener('click', function (e) {
+      e.preventDefault();
+      closeAccountModal();
+      openDeactivateModal();
+    });
+
+    getEl('deactivate-cancel').addEventListener('click', closeDeactivateModal);
+    getEl('deactivate-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      hideDeactivateError();
+      var emailVal = val('deactivate-email');
+      if (!emailVal || !isValidEmail(emailVal)) {
+        showDeactivateError('Please enter a valid email address.');
+        return;
+      }
+      api('POST', '/api/me/deactivate', { email: emailVal })
+        .then(function (res) {
+          if (res.ok) {
+            closeDeactivateModal();
+            window.location.href = 'sharemelandingpage.html';
+          } else {
+            showDeactivateError(res.error || 'Deactivation failed.');
+          }
+        })
+        .catch(function () {
+          showDeactivateError('Unable to reach server. Please try again.');
+        });
+    });
 
     getEl('share-info-edit-link').addEventListener('click', function (e) {
       e.preventDefault();

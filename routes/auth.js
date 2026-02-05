@@ -47,6 +47,11 @@ async function handle(req, res, db) {
         sendJson(res, 401, { ok: false, error: 'Invalid email or password.' });
         return;
       }
+      const status = authUser.status || authUser.STATUS;
+      if (status === 'deactivated') {
+        sendJson(res, 403, { ok: false, error: 'This account has been deactivated.' });
+        return;
+      }
       const lockedUntil = authUser.locked_until || authUser.LOCKED_UNTIL;
       if (lockedUntil && new Date(lockedUntil) > new Date()) {
         const mins = Math.ceil((new Date(lockedUntil) - new Date()) / 60000);
