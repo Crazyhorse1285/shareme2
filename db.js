@@ -164,16 +164,21 @@ async function initDb() {
     runSql('UPDATE users SET status = ? WHERE status IS NULL', ['active']);
     save();
   }
+  currentCols = db.exec('PRAGMA table_info(users)')[0].values.map(function (r) { return r[1]; });
+  if (currentCols.indexOf('reactivation_requested_at') === -1) {
+    db.run('ALTER TABLE users ADD COLUMN reactivation_requested_at TEXT');
+    save();
+  }
 
   db.run('CREATE TABLE IF NOT EXISTS password_reset_tokens (token TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires_at TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime(\'now\')), FOREIGN KEY (user_id) REFERENCES users(id))');
   save();
 
-  return { insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, getRecentRegistrations, getUserById, deleteUser, updateUser, updateAccountInfo, deactivateUser, reactivateUser, getShareInfo, updateShareInfo, updateProfessionalInfo, updateBusinessInfo, updateAcademicsInfo, createPasswordResetToken, getPasswordResetToken, consumePasswordResetToken, updateUserPassword };
+  return { insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, getRecentRegistrations, getUserById, deleteUser, updateUser, updateAccountInfo, deactivateUser, reactivateUser, setReactivationRequested, getShareInfo, updateShareInfo, updateProfessionalInfo, updateBusinessInfo, updateAcademicsInfo, createPasswordResetToken, getPasswordResetToken, consumePasswordResetToken, updateUserPassword };
 }
 
 function getUserById(id) {
   return queryOne(
-    'SELECT id, email, first_name, last_name, country_code, phone, username, display_name, created_at, status, share_name_prefix, share_name, share_email, share_country_code, share_phone, share_street, share_city, share_state, share_postal_code, prof_employer_name, prof_employer_phone, prof_employer_address, prof_employee_title, prof_years_worked, biz_name, biz_description, biz_address, biz_website, biz_phone, biz_create_date, biz_social_facebook, biz_social_instagram, biz_social_twitter, biz_social_tiktok, acad_education, acad_graduated_from, acad_field_pursued, acad_highest_level, acad_years_attended, acad_currently_enrolled FROM users WHERE id = ?',
+    'SELECT id, email, first_name, last_name, country_code, phone, username, display_name, created_at, status, reactivation_requested_at, share_name_prefix, share_name, share_email, share_country_code, share_phone, share_street, share_city, share_state, share_postal_code, prof_employer_name, prof_employer_phone, prof_employer_address, prof_employee_title, prof_years_worked, biz_name, biz_description, biz_address, biz_website, biz_phone, biz_create_date, biz_social_facebook, biz_social_instagram, biz_social_twitter, biz_social_tiktok, acad_education, acad_graduated_from, acad_field_pursued, acad_highest_level, acad_years_attended, acad_currently_enrolled FROM users WHERE id = ?',
     [id]
   );
 }
@@ -183,7 +188,11 @@ function deactivateUser(userId) {
 }
 
 function reactivateUser(userId) {
-  runSql('UPDATE users SET status = ? WHERE id = ?', ['active', userId]);
+  runSql('UPDATE users SET status = ?, reactivation_requested_at = NULL WHERE id = ?', ['active', userId]);
+}
+
+function setReactivationRequested(userId) {
+  runSql('UPDATE users SET reactivation_requested_at = datetime(\'now\') WHERE id = ?', [userId]);
 }
 
 function deleteUser(id) {
@@ -219,7 +228,7 @@ function updateAccountInfo(userId, data) {
 function getRecentRegistrations(limit) {
   const n = Math.min(Number(limit) || 50, 500);
   return queryAll(
-    'SELECT id, email, first_name, last_name, display_name, username, phone, created_at, locked_until, status, share_name_prefix, share_name, share_email, share_country_code, share_phone, share_street, share_city, share_state, share_postal_code, prof_employer_name, prof_employer_phone, prof_employer_address, prof_employee_title, prof_years_worked, biz_name, biz_description, biz_address, biz_website, biz_phone, biz_create_date, biz_social_facebook, biz_social_instagram, biz_social_twitter, biz_social_tiktok, acad_education, acad_graduated_from, acad_field_pursued, acad_highest_level, acad_years_attended, acad_currently_enrolled FROM users ORDER BY created_at DESC LIMIT ?',
+    'SELECT id, email, first_name, last_name, display_name, username, phone, created_at, locked_until, status, reactivation_requested_at, share_name_prefix, share_name, share_email, share_country_code, share_phone, share_street, share_city, share_state, share_postal_code, prof_employer_name, prof_employer_phone, prof_employer_address, prof_employee_title, prof_years_worked, biz_name, biz_description, biz_address, biz_website, biz_phone, biz_create_date, biz_social_facebook, biz_social_instagram, biz_social_twitter, biz_social_tiktok, acad_education, acad_graduated_from, acad_field_pursued, acad_highest_level, acad_years_attended, acad_currently_enrolled FROM users ORDER BY created_at DESC LIMIT ?',
     [n]
   );
 }

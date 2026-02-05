@@ -382,6 +382,8 @@ body {
 .registrations-empty,
 .registrations-error { padding: 1.5rem; color: var(--text-muted); }
 .registrations-error { color: #dc2626; }
+.reactivation-notification { max-width: 900px; margin: 0 auto 1rem; padding: 0.75rem 1rem; background: #fef3c7; color: #92400e; border-radius: 12px; font-size: 0.9375rem; }
+.status-reactivation-requested { color: #b45309; font-weight: 600; }
 .back-link { display: inline-block; margin-top: 1rem; color: var(--text-secondary); font-size: 0.9375rem; }
 .back-link:hover { color: var(--accent); }
 .btn-row { display: flex; gap: 0.5rem; align-items: center; white-space: nowrap; }

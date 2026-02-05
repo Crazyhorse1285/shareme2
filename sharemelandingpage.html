@@ -35,6 +35,7 @@
 
   <main class="main">
     <p id="reset-success-banner" class="reset-success-banner" role="status" style="display: none;">Your password has been reset. You can now log in.</p>
+    <p id="reactivation-request-banner" class="reset-success-banner" role="status" style="display: none;">Your reactivation request has been submitted. An administrator will review it.</p>
     <section class="hero">
       <div class="qr-container">
         <img
@@ -85,10 +86,33 @@
           <input type="password" id="login-password" name="password" required placeholder="Your password" autocomplete="current-password">
         </div>
         <p class="form-error" id="login-error" role="alert" style="display: none;"></p>
+        <p id="login-deactivated-wrap" class="login-forgot-wrap" style="display: none;" aria-hidden="true"></p>
         <p id="login-forgot-wrap" class="login-forgot-wrap" style="display: none;" aria-hidden="true"></p>
         <div class="login-modal-actions">
           <button type="button" class="btn btn-secondary btn-small" id="login-cancel">Cancel</button>
           <button type="submit" class="btn btn-primary btn-small">Log in</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="reactivate-modal" class="login-modal" aria-hidden="true">
+    <div class="login-modal-inner">
+      <h2>Reactivate account</h2>
+      <p class="edit-modal-desc" style="margin: 0 0 1rem; font-size: 0.875rem; color: var(--text-secondary);">Please re-enter your email address and last known password to request reactivation.</p>
+      <form id="reactivate-form">
+        <div class="form-group">
+          <label for="reactivate-email">Email</label>
+          <input type="email" id="reactivate-email" name="email" required placeholder="you@example.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="reactivate-password">Password</label>
+          <input type="password" id="reactivate-password" name="password" required placeholder="Your password" autocomplete="current-password">
+        </div>
+        <p class="form-error" id="reactivate-error" role="alert" style="display: none;"></p>
+        <div class="login-modal-actions">
+          <button type="button" class="btn btn-secondary btn-small" id="reactivate-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-small">Submit request</button>
         </div>
       </form>
     </div>
@@ -114,6 +138,10 @@
       var loginError = document.getElementById('login-error');
       var loginForm = document.getElementById('login-form');
       var loginForgotWrap = document.getElementById('login-forgot-wrap');
+      var loginDeactivatedWrap = document.getElementById('login-deactivated-wrap');
+      var reactivateModal = document.getElementById('reactivate-modal');
+      var reactivateForm = document.getElementById('reactivate-form');
+      var reactivateError = document.getElementById('reactivate-error');
       var failedLoginAttempts = 0;
 
       function displayName(user) {
@@ -131,9 +159,10 @@
         failedLoginAttempts = 0;
         loginForgotWrap.style.display = 'none';
         loginForgotWrap.setAttribute('aria-hidden', 'true');
-        if (loginForgotWrap.querySelector('a')) {
-          loginForgotWrap.removeChild(loginForgotWrap.firstChild);
-        }
+        loginDeactivatedWrap.style.display = 'none';
+        loginDeactivatedWrap.setAttribute('aria-hidden', 'true');
+        if (loginForgotWrap.querySelector('a')) loginForgotWrap.removeChild(loginForgotWrap.firstChild);
+        if (loginDeactivatedWrap.querySelector('a')) loginDeactivatedWrap.removeChild(loginDeactivatedWrap.firstChild);
         loginForm.reset();
         loginModal.classList.add('open');
         loginModal.setAttribute('aria-hidden', 'false');
@@ -181,6 +210,27 @@
                 window.location.href = 'sharemedashboard.html';
               } else {
                 failedLoginAttempts += 1;
+                var msg = result.data.error || 'Invalid email or password.';
+                if (result.status === 403 && msg.toLowerCase().indexOf('deactivated') !== -1) {
+                  if (!loginDeactivatedWrap.querySelector('a')) {
+                    var reactivateLink = document.createElement('a');
+                    reactivateLink.href = '#';
+                    reactivateLink.id = 'login-reactivate-link';
+                    reactivateLink.textContent = 'Reactivate account?';
+                    reactivateLink.addEventListener('click', function (e) {
+                      e.preventDefault();
+                      loginModal.classList.remove('open');
+                      loginModal.setAttribute('aria-hidden', 'true');
+                      reactivateError.style.display = 'none';
+                      reactivateForm.reset();
+                      reactivateModal.classList.add('open');
+                      reactivateModal.setAttribute('aria-hidden', 'false');
+                    });
+                    loginDeactivatedWrap.appendChild(reactivateLink);
+                  }
+                  loginDeactivatedWrap.style.display = 'block';
+                  loginDeactivatedWrap.setAttribute('aria-hidden', 'false');
+                }
                 if (failedLoginAttempts >= 3) {
                   if (!loginForgotWrap.querySelector('a')) {
                     var a = document.createElement('a');
@@ -192,7 +242,6 @@
                   loginForgotWrap.style.display = 'block';
                   loginForgotWrap.setAttribute('aria-hidden', 'false');
                 }
-                var msg = result.data.error || 'Invalid email or password.';
                 if (result.status === 423) {
                   msg = result.data.error || 'Account locked. Try again in 5 minutes.';
                 }
@@ -233,6 +282,46 @@
         e.preventDefault();
         fetch('/api/logout', { method: 'POST', credentials: 'include' })
           .then(function () { window.location.href = 'sharemelandingpage.html'; });
+      });
+
+      document.getElementById('reactivate-cancel').addEventListener('click', function () {
+        reactivateModal.classList.remove('open');
+        reactivateModal.setAttribute('aria-hidden', 'true');
+        reactivateError.style.display = 'none';
+      });
+
+      reactivateForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        reactivateError.style.display = 'none';
+        var email = document.getElementById('reactivate-email').value.trim();
+        var password = document.getElementById('reactivate-password').value;
+        if (!email || !password) {
+          reactivateError.textContent = 'Email and password are required.';
+          reactivateError.style.display = 'block';
+          return;
+        }
+        fetch('/api/request-reactivation', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, password: password })
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (data.ok) {
+              reactivateModal.classList.remove('open');
+              reactivateModal.setAttribute('aria-hidden', 'true');
+              document.getElementById('reactivation-request-banner').style.display = 'block';
+              window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+            } else {
+              reactivateError.textContent = data.error || 'Request failed.';
+              reactivateError.style.display = 'block';
+            }
+          })
+          .catch(function () {
+            reactivateError.textContent = 'Unable to reach server. Please try again.';
+            reactivateError.style.display = 'block';
+          });
       });
     })();
   </script>

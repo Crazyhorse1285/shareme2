@@ -24,6 +24,7 @@
   <main class="main">
     <section class="registrations-section">
       <h1>Registered users</h1>
+      <div id="reactivation-notification" class="reactivation-notification" role="status" style="display: none;"></div>
       <div id="registrations-content">
         <p class="registrations-empty">Loading…</p>
       </div>
@@ -127,6 +128,20 @@
       }
 
       function renderTable(registrations) {
+        var notificationEl = document.getElementById('reactivation-notification');
+        if (notificationEl) {
+          var count = (registrations || []).filter(function (r) {
+            return (r.reactivation_requested_at || r.REACTIVATION_REQUESTED_AT) && (r.status || r.STATUS) === 'deactivated';
+          }).length;
+          if (count > 0) {
+            notificationEl.textContent = count === 1
+              ? '1 user has requested reactivation.'
+              : count + ' users have requested reactivation.';
+            notificationEl.style.display = 'block';
+          } else {
+            notificationEl.style.display = 'none';
+          }
+        }
         if (!registrations || !registrations.length) {
           setContent('<p class="registrations-empty">No registrations yet.</p>');
           return;
@@ -147,6 +162,8 @@
               return '<td class="actions-cell"><div class="btn-row"><button type="button" class="btn btn-primary btn-small edit-btn" data-id="' + row.id + '">Edit</button><button type="button" class="btn btn-danger btn-small delete-btn" data-id="' + row.id + '">Delete</button>' + unlockBtn + reactivateBtn + '</div></td>';
             }
             if (c.key === 'locked_status') {
+              var requestedAt = row.reactivation_requested_at || row.REACTIVATION_REQUESTED_AT;
+              if (status === 'deactivated' && requestedAt) return '<td><span class="status-reactivation-requested">Deactivated (reactivation requested)</span></td>';
               if (status === 'deactivated') return '<td><span class="status-deactivated">Deactivated</span></td>';
               if (locked) return '<td><span class="status-locked">Locked</span></td>';
               return '<td>—</td>';
@@ -190,6 +207,8 @@
       });
 
       function loadRegistrations() {
+        var notificationEl = document.getElementById('reactivation-notification');
+        if (notificationEl) notificationEl.style.display = 'none';
         setContent('<p class="registrations-empty">Loading…</p>');
         api('GET', '/api/registrations?_t=' + Date.now()).then(function (data) {
           if (data.ok && data.registrations) renderTable(data.registrations);

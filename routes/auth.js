@@ -10,7 +10,8 @@ function match(req) {
     (req.method === 'POST' && p === '/api/login') ||
     (req.method === 'POST' && p === '/api/register') ||
     (req.method === 'POST' && p === '/api/forgot-password') ||
-    (req.method === 'POST' && p === '/api/reset-password')
+    (req.method === 'POST' && p === '/api/reset-password') ||
+    (req.method === 'POST' && p === '/api/request-reactivation')
   );
 }
 
@@ -175,6 +176,40 @@ async function handle(req, res, db) {
     } catch (e) {
       console.error('Reset password error:', e);
       sendJson(res, 500, { ok: false, error: 'Something went wrong. Please try again.' });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && urlPath === '/api/request-reactivation') {
+    try {
+      const body = await parseBody(req);
+      const email = (body.email != null && typeof body.email === 'string') ? String(body.email).trim().toLowerCase() : '';
+      const password = typeof body.password === 'string' ? body.password : '';
+      if (!email || !password) {
+        sendJson(res, 400, { ok: false, error: 'Email and password are required.' });
+        return;
+      }
+      const authUser = db.getAuthUserByEmail(email);
+      if (!authUser) {
+        sendJson(res, 401, { ok: false, error: 'Invalid email or password.' });
+        return;
+      }
+      const status = authUser.status || authUser.STATUS;
+      if (status !== 'deactivated') {
+        sendJson(res, 400, { ok: false, error: 'This account is not deactivated.' });
+        return;
+      }
+      const storedHash = authUser.password_hash || authUser.PASSWORD_HASH;
+      const passwordHashHex = crypto.createHash('sha256').update(password, 'utf8').digest('hex');
+      if (!verifyPassword(passwordHashHex, storedHash)) {
+        sendJson(res, 401, { ok: false, error: 'Invalid email or password.' });
+        return;
+      }
+      db.setReactivationRequested(authUser.id);
+      sendJson(res, 200, { ok: true, message: 'Your reactivation request has been submitted. An administrator will review it.' });
+    } catch (e) {
+      console.error(e);
+      sendJson(res, 500, { ok: false, error: 'Unable to submit reactivation request. Please try again.' });
     }
     return;
   }
