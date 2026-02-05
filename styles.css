@@ -376,7 +376,7 @@ body {
 .registrations-section h1 { margin: 0 0 1rem; font-size: 1.5rem; color: var(--text-primary); }
 .registrations-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 .registrations-table th,
-.registrations-table td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+.registrations-table td { padding: 0.5rem 0.75rem; text-align: left; vertical-align: middle; border-bottom: 1px solid var(--border); }
 .registrations-table th { font-weight: 600; color: var(--text-secondary); background: var(--bg-page); }
 .registrations-table tr:hover { background: var(--bg-card); }
 .registrations-empty,
@@ -385,6 +385,7 @@ body {
 .back-link { display: inline-block; margin-top: 1rem; color: var(--text-secondary); font-size: 0.9375rem; }
 .back-link:hover { color: var(--accent); }
 .btn-row { display: flex; gap: 0.5rem; align-items: center; white-space: nowrap; }
+.registrations-table td.actions-cell { vertical-align: middle; }
 .registrations-table th:last-child,
 .registrations-table td:last-child { width: 1%; white-space: nowrap; }
 .registrations-table .btn { cursor: pointer; font: inherit; border-radius: 8px; font-weight: 500; min-height: 32px; }

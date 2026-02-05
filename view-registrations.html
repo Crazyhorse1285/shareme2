@@ -141,7 +141,7 @@
           var cells = columns.map(function (c) {
             if (c.key === '_actions') {
               var unlockBtn = locked ? '<button type="button" class="btn btn-secondary btn-small unlock-btn" data-id="' + row.id + '" title="Clear login lock so user can sign in again">Unlock</button>' : '';
-              return '<td class="btn-row"><button type="button" class="btn btn-primary btn-small edit-btn" data-id="' + row.id + '">Edit</button><button type="button" class="btn btn-danger btn-small delete-btn" data-id="' + row.id + '">Delete</button>' + unlockBtn + '</td>';
+              return '<td class="actions-cell"><div class="btn-row"><button type="button" class="btn btn-primary btn-small edit-btn" data-id="' + row.id + '">Edit</button><button type="button" class="btn btn-danger btn-small delete-btn" data-id="' + row.id + '">Delete</button>' + unlockBtn + '</div></td>';
             }
             if (c.key === 'locked_status') {
               return '<td>' + (locked ? '<span class="status-locked">Locked</span>' : '—') + '</td>';
