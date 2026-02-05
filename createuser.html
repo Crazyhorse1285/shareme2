@@ -99,6 +99,12 @@
       margin: 0.5rem 0 1rem 0;
       line-height: 1.4;
     }
+    .password-requirements {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin: 0.35rem 0 0 0;
+      line-height: 1.35;
+    }
   </style>
 </head>
 <body>
@@ -160,6 +166,7 @@
         <div class="form-group">
           <label for="password">Password</label>
           <input type="password" id="password" name="password" required placeholder="Minimum 10 characters" autocomplete="new-password">
+          <p class="password-requirements">(Password must be at least 10 characters. Must have at least 1 special character. Must not contain part of the email address.)</p>
           <p class="form-error" id="password-error" role="alert">Password is invalid.</p>
         </div>
         <div class="form-group">
@@ -232,8 +239,12 @@
         return digits.length >= 7 && digits.length <= 15;
       }
 
+      function hasSpecialChar(str) {
+        return /[^a-zA-Z0-9\s]/.test(str);
+      }
       function isPasswordValid(password, email) {
         if (!password || password.length < 10) return false;
+        if (!hasSpecialChar(password)) return false;
         if (!email) return true;
         var emailLower = email.toLowerCase();
         var passwordLower = password.toLowerCase();
@@ -269,7 +280,7 @@
           return;
         }
         if (!isPasswordValid(password, email)) {
-          showError(passwordError, 'Password is invalid.');
+          showError(passwordError, 'Password must be at least 10 characters, include at least 1 special character, and cannot contain your email or the part before @.');
           setInputError(passwordInput, true);
         } else {
           hideError(passwordError);
@@ -348,7 +359,7 @@
         }
 
         if (!isPasswordValid(password, email)) {
-          showError(passwordError, 'Password must be at least 10 characters and cannot contain your email or the part before @.');
+          showError(passwordError, 'Password must be at least 10 characters, include at least 1 special character, and cannot contain your email or the part before @.');
           setInputError(passwordInput, true);
           valid = false;
         }
