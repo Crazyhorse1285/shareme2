@@ -250,6 +250,20 @@ body {
   color: var(--accent);
 }
 
+.funnel-downgrade-wrap {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+}
+
+.funnel-downgrade-wrap .link-muted {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.funnel-downgrade-wrap .link-muted:hover {
+  color: var(--text-primary);
+}
+
 .share-info-edit-link {
   color: var(--accent);
   text-decoration: none;
@@ -417,6 +431,8 @@ body {
 .registrations-table .btn-secondary:hover { background: var(--text-primary); color: #fff; }
 .status-locked { color: #dc2626; font-weight: 600; }
 .status-deactivated { color: var(--text-muted); font-weight: 500; }
+.tier-pro { font-weight: 600; color: var(--accent, #2563eb); }
+.tier-free { color: var(--text-secondary); }
 .edit-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
 .edit-modal.open { display: flex; }
 .edit-modal-inner { background: var(--bg-card); border-radius: var(--radius-lg); max-width: 400px; width: 90%; box-shadow: var(--shadow-md); max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; }

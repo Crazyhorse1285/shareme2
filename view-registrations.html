@@ -89,6 +89,7 @@
         { key: 'last_name', label: 'Last name' },
         { key: 'username', label: 'Username' },
         { key: 'phone', label: 'Phone number' },
+        { key: 'plan_display', label: 'Tier' },
         { key: 'created_at', label: 'Created' },
         { key: 'email_verified_display', label: 'Email verified' },
         { key: 'locked_status', label: 'Status' },
@@ -165,6 +166,12 @@
             if (c.key === 'email_verified_display') {
               var verified = row.email_verified || row.EMAIL_VERIFIED;
               return '<td>' + (verified === 1 || verified === '1' ? 'Yes' : 'No') + '</td>';
+            }
+            if (c.key === 'plan_display') {
+              var p = (row.plan || row.PLAN || 'free').toString().toLowerCase();
+              var tierLabel = p === 'pro' ? 'Pro' : 'Free';
+              var tierClass = p === 'pro' ? 'tier-pro' : 'tier-free';
+              return '<td><span class="' + tierClass + '">' + tierLabel + '</span></td>';
             }
             if (c.key === 'locked_status') {
               var requestedAt = row.reactivation_requested_at || row.REACTIVATION_REQUESTED_AT;

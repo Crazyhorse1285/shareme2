@@ -6,7 +6,7 @@ function match(req) {
   const p = req.urlPath || req.url.split('?')[0];
   return (req.method === 'GET' && p === '/api/me') ||
     (req.method === 'PUT' && (p === '/api/me/share-info' || p === '/api/me/professional-info' || p === '/api/me/business-info' || p === '/api/me/academics-info' || p === '/api/me/account')) ||
-    (req.method === 'POST' && p === '/api/me/deactivate');
+    (req.method === 'POST' && (p === '/api/me/deactivate' || p === '/api/me/downgrade'));
 }
 
 function isBodyTooLarge(err) {
@@ -277,6 +277,29 @@ async function handle(req, res, db) {
       if (isBodyTooLarge(e)) { sendJson(res, 413, { ok: false, error: 'Request body too large.' }); return; }
       console.error(e);
       sendJson(res, 500, { ok: false, error: 'Failed to deactivate account.' });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && urlPath === '/api/me/downgrade') {
+    try {
+      const userId = getSessionUser(req);
+      const user = userId ? db.getUserById(userId) : null;
+      if (!user) {
+        sendJson(res, 401, { ok: false, error: 'You must be logged in to change your plan.' });
+        return;
+      }
+      const plan = (user.plan || 'free').toLowerCase();
+      if (plan !== 'pro') {
+        sendJson(res, 200, { ok: true, message: 'You are already on the free tier.' });
+        return;
+      }
+      db.updateUserPlan(userId, 'free');
+      sendJson(res, 200, { ok: true, message: 'Downgraded to free tier.' });
+    } catch (e) {
+      if (isBodyTooLarge(e)) { sendJson(res, 413, { ok: false, error: 'Request body too large.' }); return; }
+      console.error(e);
+      sendJson(res, 500, { ok: false, error: 'Failed to downgrade.' });
     }
   }
 }

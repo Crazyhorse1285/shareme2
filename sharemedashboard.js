@@ -545,6 +545,24 @@
           } else if (upgradeWrap) {
             upgradeWrap.style.display = 'none';
           }
+          var downgradeWrap = document.getElementById('funnel-downgrade-wrap');
+          var downgradeLink = document.getElementById('dashboard-downgrade-link');
+          if (plan === 'pro' && downgradeWrap && downgradeLink) {
+            downgradeWrap.style.display = '';
+            downgradeLink.addEventListener('click', function (e) {
+              e.preventDefault();
+              if (!confirm('Downgrade to the free tier? You will lose access to Professional, Business, and Academics profiles.')) return;
+              fetch('/api/me/downgrade', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' } })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                  if (res.ok) window.location.reload();
+                  else alert(res.error || 'Could not downgrade.');
+                })
+                .catch(function () { alert('Unable to complete. Please try again.'); });
+            });
+          } else if (downgradeWrap) {
+            downgradeWrap.style.display = 'none';
+          }
         } else {
           window.location.replace('sharemelandingpage.html');
         }

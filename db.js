@@ -234,7 +234,7 @@ function updateAccountInfo(userId, data) {
 function getRecentRegistrations(limit) {
   const n = Math.min(Number(limit) || 50, 500);
   return queryAll(
-    'SELECT id, email, first_name, last_name, display_name, username, phone, created_at, locked_until, status, reactivation_requested_at, email_verified, share_name_prefix, share_name, share_email, share_country_code, share_phone, share_street, share_city, share_state, share_postal_code, prof_employer_name, prof_employer_phone, prof_employer_address, prof_employee_title, prof_years_worked, biz_name, biz_description, biz_address, biz_website, biz_phone, biz_create_date, biz_social_facebook, biz_social_instagram, biz_social_twitter, biz_social_tiktok, acad_education, acad_graduated_from, acad_field_pursued, acad_highest_level, acad_years_attended, acad_currently_enrolled FROM users ORDER BY created_at DESC LIMIT ?',
+    'SELECT id, email, first_name, last_name, display_name, username, phone, created_at, locked_until, status, plan, reactivation_requested_at, email_verified, share_name_prefix, share_name, share_email, share_country_code, share_phone, share_street, share_city, share_state, share_postal_code, prof_employer_name, prof_employer_phone, prof_employer_address, prof_employee_title, prof_years_worked, biz_name, biz_description, biz_address, biz_website, biz_phone, biz_create_date, biz_social_facebook, biz_social_instagram, biz_social_twitter, biz_social_tiktok, acad_education, acad_graduated_from, acad_field_pursued, acad_highest_level, acad_years_attended, acad_currently_enrolled FROM users ORDER BY created_at DESC LIMIT ?',
     [n]
   );
 }
