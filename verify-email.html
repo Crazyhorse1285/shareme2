@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify email — ShareMe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .verify-section {
+      max-width: 420px;
+      margin: 2rem auto 4rem;
+      padding: 2rem;
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border);
+    }
+    .verify-section h1 {
+      margin: 0 0 0.5rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .verify-section .subtitle {
+      margin: 0 0 1.5rem;
+      font-size: 0.9375rem;
+      color: var(--text-secondary);
+    }
+    .verify-success { color: #059669; font-weight: 500; }
+    .verify-error { color: #dc2626; font-weight: 500; }
+    .verify-back { display: inline-block; margin-top: 1rem; color: var(--text-secondary); font-size: 0.9375rem; }
+    .verify-back:hover { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <a href="sharemelandingpage.html" class="logo">ShareMe</a>
+      <nav class="nav">
+        <a href="sharemelandingpage.html" class="link">Home</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="verify-section">
+      <h1>Verify email address</h1>
+      <p class="subtitle" id="verify-status">Verifying…</p>
+      <p id="verify-message" class="verify-success" style="display: none;"></p>
+      <p id="verify-err" class="verify-error" style="display: none;"></p>
+      <a href="sharemelandingpage.html" class="verify-back" id="verify-back">← Back to home</a>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <p class="footer-brand">ShareMe</p>
+      <nav class="footer-nav">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </nav>
+      <p class="footer-copy">&copy; 2026 ShareMe. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var token = params.get('token');
+      var statusEl = document.getElementById('verify-status');
+      var messageEl = document.getElementById('verify-message');
+      var errEl = document.getElementById('verify-err');
+
+      function showSuccess(msg) {
+        statusEl.textContent = 'Done';
+        messageEl.textContent = msg || 'Your email address has been verified.';
+        messageEl.style.display = 'block';
+        errEl.style.display = 'none';
+      }
+      function showError(msg) {
+        statusEl.textContent = 'Verification failed';
+        errEl.textContent = msg || 'Invalid or expired link.';
+        errEl.style.display = 'block';
+        messageEl.style.display = 'none';
+      }
+
+      if (!token) {
+        showError('Missing verification token. Use the link from your welcome email.');
+        return;
+      }
+
+      fetch('/api/verify-email', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: token })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.ok) {
+            showSuccess(data.message || 'Your email address has been verified.');
+          } else {
+            showError(data.error || 'Verification failed.');
+          }
+        })
+        .catch(function () {
+          showError('Unable to reach server. Please try again.');
+        });
+    })();
+  </script>
+</body>
+</html>

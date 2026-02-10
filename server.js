@@ -22,10 +22,14 @@ function createRouter(db) {
   };
 }
 
+function createApp(db) {
+  const router = createRouter(db);
+  return http.createServer(router);
+}
+
 async function main() {
   const db = await require('./db').initDb();
-  const router = createRouter(db);
-  const server = http.createServer(router);
+  const server = createApp(db);
 
   server.listen(PORT, () => {
     console.log(`ShareMe server at http://localhost:${PORT}/`);
@@ -47,7 +51,11 @@ async function main() {
   });
 }
 
-main().catch((err) => {
-  console.error('Failed to start:', err);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((err) => {
+    console.error('Failed to start:', err);
+    process.exit(1);
+  });
+}
+
+module.exports = { createRouter, createApp };

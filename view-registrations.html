@@ -90,6 +90,7 @@
         { key: 'username', label: 'Username' },
         { key: 'phone', label: 'Phone number' },
         { key: 'created_at', label: 'Created' },
+        { key: 'email_verified_display', label: 'Email verified' },
         { key: 'locked_status', label: 'Status' },
         { key: '_actions', label: 'Actions' }
       ];
@@ -160,6 +161,10 @@
               var unlockBtn = locked ? '<button type="button" class="btn btn-secondary btn-small unlock-btn" data-id="' + row.id + '" title="Clear login lock so user can sign in again">Unlock</button>' : '';
               var reactivateBtn = deactivated ? '<button type="button" class="btn btn-secondary btn-small reactivate-btn" data-id="' + row.id + '" title="Reactivate this account so user can log in again">Reactivate</button>' : '';
               return '<td class="actions-cell"><div class="btn-row"><button type="button" class="btn btn-primary btn-small edit-btn" data-id="' + row.id + '">Edit</button><button type="button" class="btn btn-danger btn-small delete-btn" data-id="' + row.id + '">Delete</button>' + unlockBtn + reactivateBtn + '</div></td>';
+            }
+            if (c.key === 'email_verified_display') {
+              var verified = row.email_verified || row.EMAIL_VERIFIED;
+              return '<td>' + (verified === 1 || verified === '1' ? 'Yes' : 'No') + '</td>';
             }
             if (c.key === 'locked_status') {
               var requestedAt = row.reactivation_requested_at || row.REACTIVATION_REQUESTED_AT;

@@ -4,7 +4,8 @@
   "description": "ShareMe static site",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "test": "node --test test/api.test.js"
   },
   "dependencies": {
     "dotenv": "^17.2.3",

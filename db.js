@@ -3,7 +3,9 @@ const fs = require('fs');
 const crypto = require('crypto');
 
 const dataDir = path.join(__dirname, 'data');
-const dbPath = path.join(dataDir, 'shareme.db');
+const dbPath = process.env.SHAREME_TEST_DB
+  ? path.join(dataDir, 'test-shareme.db')
+  : path.join(dataDir, 'shareme.db');
 
 const USERS_SCHEMA = `
   id TEXT PRIMARY KEY,
@@ -169,16 +171,22 @@ async function initDb() {
     db.run('ALTER TABLE users ADD COLUMN reactivation_requested_at TEXT');
     save();
   }
+  currentCols = db.exec('PRAGMA table_info(users)')[0].values.map(function (r) { return r[1]; });
+  if (currentCols.indexOf('email_verified') === -1) {
+    db.run('ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0');
+    save();
+  }
 
   db.run('CREATE TABLE IF NOT EXISTS password_reset_tokens (token TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires_at TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime(\'now\')), FOREIGN KEY (user_id) REFERENCES users(id))');
+  db.run('CREATE TABLE IF NOT EXISTS email_verification_tokens (token TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires_at TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime(\'now\')), FOREIGN KEY (user_id) REFERENCES users(id))');
   save();
 
-  return { insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, getRecentRegistrations, getUserById, deleteUser, updateUser, updateAccountInfo, deactivateUser, reactivateUser, setReactivationRequested, getShareInfo, updateShareInfo, updateProfessionalInfo, updateBusinessInfo, updateAcademicsInfo, createPasswordResetToken, getPasswordResetToken, consumePasswordResetToken, updateUserPassword };
+  return { insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, getRecentRegistrations, getUserById, deleteUser, updateUser, updateAccountInfo, deactivateUser, reactivateUser, setReactivationRequested, getShareInfo, updateShareInfo, updateProfessionalInfo, updateBusinessInfo, updateAcademicsInfo, createPasswordResetToken, getPasswordResetToken, consumePasswordResetToken, updateUserPassword, createEmailVerificationToken, getEmailVerificationToken, consumeEmailVerificationToken, setEmailVerified };
 }
 
 function getUserById(id) {
   return queryOne(
-    'SELECT id, email, first_name, last_name, country_code, phone, username, display_name, created_at, status, reactivation_requested_at, share_name_prefix, share_name, share_email, share_country_code, share_phone, share_street, share_city, share_state, share_postal_code, prof_employer_name, prof_employer_phone, prof_employer_address, prof_employee_title, prof_years_worked, biz_name, biz_description, biz_address, biz_website, biz_phone, biz_create_date, biz_social_facebook, biz_social_instagram, biz_social_twitter, biz_social_tiktok, acad_education, acad_graduated_from, acad_field_pursued, acad_highest_level, acad_years_attended, acad_currently_enrolled FROM users WHERE id = ?',
+    'SELECT id, email, first_name, last_name, country_code, phone, username, display_name, created_at, status, reactivation_requested_at, email_verified, share_name_prefix, share_name, share_email, share_country_code, share_phone, share_street, share_city, share_state, share_postal_code, prof_employer_name, prof_employer_phone, prof_employer_address, prof_employee_title, prof_years_worked, biz_name, biz_description, biz_address, biz_website, biz_phone, biz_create_date, biz_social_facebook, biz_social_instagram, biz_social_twitter, biz_social_tiktok, acad_education, acad_graduated_from, acad_field_pursued, acad_highest_level, acad_years_attended, acad_currently_enrolled FROM users WHERE id = ?',
     [id]
   );
 }
@@ -228,7 +236,7 @@ function updateAccountInfo(userId, data) {
 function getRecentRegistrations(limit) {
   const n = Math.min(Number(limit) || 50, 500);
   return queryAll(
-    'SELECT id, email, first_name, last_name, display_name, username, phone, created_at, locked_until, status, reactivation_requested_at, share_name_prefix, share_name, share_email, share_country_code, share_phone, share_street, share_city, share_state, share_postal_code, prof_employer_name, prof_employer_phone, prof_employer_address, prof_employee_title, prof_years_worked, biz_name, biz_description, biz_address, biz_website, biz_phone, biz_create_date, biz_social_facebook, biz_social_instagram, biz_social_twitter, biz_social_tiktok, acad_education, acad_graduated_from, acad_field_pursued, acad_highest_level, acad_years_attended, acad_currently_enrolled FROM users ORDER BY created_at DESC LIMIT ?',
+    'SELECT id, email, first_name, last_name, display_name, username, phone, created_at, locked_until, status, reactivation_requested_at, email_verified, share_name_prefix, share_name, share_email, share_country_code, share_phone, share_street, share_city, share_state, share_postal_code, prof_employer_name, prof_employer_phone, prof_employer_address, prof_employee_title, prof_years_worked, biz_name, biz_description, biz_address, biz_website, biz_phone, biz_create_date, biz_social_facebook, biz_social_instagram, biz_social_twitter, biz_social_tiktok, acad_education, acad_graduated_from, acad_field_pursued, acad_highest_level, acad_years_attended, acad_currently_enrolled FROM users ORDER BY created_at DESC LIMIT ?',
     [n]
   );
 }
@@ -358,4 +366,33 @@ function updateUserPassword(userId, passwordHash) {
   runSql('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, userId]);
 }
 
-module.exports = { initDb, insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, emailToHash, createPasswordResetToken, getPasswordResetToken, consumePasswordResetToken, updateUserPassword };
+function createEmailVerificationToken(userId) {
+  runSql('DELETE FROM email_verification_tokens WHERE user_id = ?', [userId]);
+  var token = crypto.randomBytes(32).toString('hex');
+  var expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  runSql('INSERT INTO email_verification_tokens (token, user_id, expires_at) VALUES (?, ?, ?)', [token, userId, expiresAt]);
+  return token;
+}
+
+function getEmailVerificationToken(token) {
+  if (!token || typeof token !== 'string') return null;
+  var row = queryOne('SELECT token, user_id, expires_at FROM email_verification_tokens WHERE token = ?', [token.trim()]);
+  if (!row) return null;
+  if (new Date(row.expires_at) <= new Date()) {
+    runSql('DELETE FROM email_verification_tokens WHERE token = ?', [token.trim()]);
+    return null;
+  }
+  return row;
+}
+
+function consumeEmailVerificationToken(token) {
+  if (!token || typeof token !== 'string') return false;
+  runSql('DELETE FROM email_verification_tokens WHERE token = ?', [token.trim()]);
+  return true;
+}
+
+function setEmailVerified(userId) {
+  runSql('UPDATE users SET email_verified = 1 WHERE id = ?', [userId]);
+}
+
+module.exports = { initDb, insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, emailToHash, createPasswordResetToken, getPasswordResetToken, consumePasswordResetToken, updateUserPassword, createEmailVerificationToken, getEmailVerificationToken, consumeEmailVerificationToken, setEmailVerified };

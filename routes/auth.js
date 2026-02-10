@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const { sendJson, parseBody } = require('../lib/http');
 const { sessions, setSessionCookie, clearSessionCookie, parseCookies, SESSION_COOKIE, hashPassword, verifyPassword } = require('../lib/auth');
-const { sendPasswordResetEmail } = require('../lib/email');
+const { sendPasswordResetEmail, sendWelcomeVerificationEmail } = require('../lib/email');
 
 function match(req) {
   const p = req.urlPath || req.url.split('?')[0];
@@ -11,7 +11,8 @@ function match(req) {
     (req.method === 'POST' && p === '/api/register') ||
     (req.method === 'POST' && p === '/api/forgot-password') ||
     (req.method === 'POST' && p === '/api/reset-password') ||
-    (req.method === 'POST' && p === '/api/request-reactivation')
+    (req.method === 'POST' && p === '/api/request-reactivation') ||
+    (req.method === 'POST' && p === '/api/verify-email')
   );
 }
 
@@ -115,6 +116,12 @@ async function handle(req, res, db) {
         username: username != null ? String(username).trim() : null,
         displayName: displayName != null ? String(displayName).trim() : null
       });
+      try {
+        const verifyToken = db.createEmailVerificationToken(userId);
+        await sendWelcomeVerificationEmail(emailTrim, verifyToken);
+      } catch (e) {
+        console.error('Welcome/verification email failed:', e.message);
+      }
       const sessionId = crypto.randomBytes(24).toString('hex');
       sessions.set(sessionId, { userId });
       setSessionCookie(res, sessionId);
@@ -183,13 +190,15 @@ async function handle(req, res, db) {
   if (req.method === 'POST' && urlPath === '/api/request-reactivation') {
     try {
       const body = await parseBody(req);
-      const email = (body.email != null && typeof body.email === 'string') ? String(body.email).trim().toLowerCase() : '';
-      const password = typeof body.password === 'string' ? body.password : '';
-      if (!email || !password) {
+      const emailHash = (body.emailHash != null && typeof body.emailHash === 'string') ? String(body.emailHash).trim().toLowerCase() : '';
+      const passwordHash = (body.passwordHash != null && typeof body.passwordHash === 'string') ? String(body.passwordHash).trim() : '';
+      const validEmailHash = emailHash.length === 64 && /^[a-f0-9]+$/i.test(emailHash);
+      const validPasswordHash = passwordHash.length === 64 && /^[a-f0-9]+$/i.test(passwordHash);
+      if (!validEmailHash || !validPasswordHash) {
         sendJson(res, 400, { ok: false, error: 'Email and password are required.' });
         return;
       }
-      const authUser = db.getAuthUserByEmail(email);
+      const authUser = db.getAuthUserByEmailHash(emailHash);
       if (!authUser) {
         sendJson(res, 401, { ok: false, error: 'Invalid email or password.' });
         return;
@@ -200,8 +209,7 @@ async function handle(req, res, db) {
         return;
       }
       const storedHash = authUser.password_hash || authUser.PASSWORD_HASH;
-      const passwordHashHex = crypto.createHash('sha256').update(password, 'utf8').digest('hex');
-      if (!verifyPassword(passwordHashHex, storedHash)) {
+      if (!verifyPassword(passwordHash, storedHash)) {
         sendJson(res, 401, { ok: false, error: 'Invalid email or password.' });
         return;
       }
@@ -210,6 +218,29 @@ async function handle(req, res, db) {
     } catch (e) {
       console.error(e);
       sendJson(res, 500, { ok: false, error: 'Unable to submit reactivation request. Please try again.' });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && urlPath === '/api/verify-email') {
+    try {
+      const body = await parseBody(req);
+      const token = (body.token != null && typeof body.token === 'string') ? String(body.token).trim() : '';
+      if (!token) {
+        sendJson(res, 400, { ok: false, error: 'Verification token is required.' });
+        return;
+      }
+      const row = db.getEmailVerificationToken(token);
+      if (!row) {
+        sendJson(res, 400, { ok: false, error: 'Invalid or expired verification link. You can request a new one from your account settings.' });
+        return;
+      }
+      db.setEmailVerified(row.user_id);
+      db.consumeEmailVerificationToken(token);
+      sendJson(res, 200, { ok: true, message: 'Your email address has been verified.' });
+    } catch (e) {
+      console.error(e);
+      sendJson(res, 500, { ok: false, error: 'Verification failed. Please try again.' });
     }
     return;
   }
