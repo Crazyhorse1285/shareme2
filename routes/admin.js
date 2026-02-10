@@ -4,6 +4,11 @@ const fs = require('fs');
 const { sendJson, parseBody } = require('../lib/http');
 const { requireAdmin, isAdminSession, adminSessions, setAdminSessionCookie, clearAdminSessionCookie, parseCookies, ADMIN_SESSION_COOKIE } = require('../lib/auth');
 const { MIME_TYPES } = require('../lib/config');
+const { trimString } = require('../lib/utils/validation');
+
+function isBodyTooLarge(err) {
+  return err && err.message === 'Request body too large';
+}
 
 function match(req) {
   const p = req.urlPath || req.url.split('?')[0];
@@ -26,8 +31,8 @@ async function handle(req, res, db) {
         return;
       }
       const body = await parseBody(req);
-      const email = (body.email != null && typeof body.email === 'string') ? body.email.trim().toLowerCase() : '';
-      const password = typeof body.password === 'string' ? body.password : '';
+      const email = trimString(body?.email ?? '').toLowerCase();
+      const password = typeof body?.password === 'string' ? body.password : '';
       if (!email || !password) {
         sendJson(res, 400, { ok: false, error: 'Email and password are required.' });
         return;
@@ -49,6 +54,7 @@ async function handle(req, res, db) {
       const safeNext = nextUrl.startsWith('/') && (nextUrl === '/view-registrations.html' || nextUrl === '/view-database.html') ? nextUrl : '/view-registrations.html';
       sendJson(res, 200, { ok: true, redirect: safeNext });
     } catch (e) {
+      if (isBodyTooLarge(e)) { sendJson(res, 413, { ok: false, error: 'Request body too large.' }); return; }
       console.error(e);
       sendJson(res, 500, { ok: false, error: 'Admin login failed.' });
     }

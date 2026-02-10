@@ -2,6 +2,8 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 
+// --- Config & schema ---
+
 const dataDir = path.join(__dirname, 'data');
 const dbPath = process.env.SHAREME_TEST_DB
   ? path.join(dataDir, 'test-shareme.db')
@@ -21,6 +23,36 @@ const USERS_SCHEMA = `
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 `;
 
+const PASSWORD_RESET_TOKENS_TABLE = `CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  token TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id)
+)`;
+
+const EMAIL_VERIFICATION_TABLE = `CREATE TABLE IF NOT EXISTS email_verification_tokens (
+  token TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id)
+)`;
+
+/** Whitelist of TEXT columns added in migrations (safe to use in ALTER) */
+const MIGRATION_TEXT_COLUMNS = [
+  'share_name_prefix', 'share_name', 'share_email', 'share_country_code', 'share_phone',
+  'share_street', 'share_city', 'share_state', 'share_postal_code',
+  'prof_employer_name', 'prof_employer_phone', 'prof_employer_address', 'prof_employee_title', 'prof_years_worked',
+  'biz_name', 'biz_description', 'biz_address', 'biz_website', 'biz_phone', 'biz_create_date',
+  'biz_social_facebook', 'biz_social_instagram', 'biz_social_twitter', 'biz_social_tiktok',
+  'acad_education', 'acad_graduated_from', 'acad_field_pursued', 'acad_highest_level', 'acad_years_attended', 'acad_currently_enrolled'
+];
+
+let db = null;
+
+// --- Helpers ---
+
 function emailToHash(email) {
   if (!email || typeof email !== 'string') return null;
   const normalized = email.trim().toLowerCase();
@@ -28,7 +60,22 @@ function emailToHash(email) {
   return crypto.createHash('sha256').update(normalized, 'utf8').digest('hex');
 }
 
-let db = null;
+/** @returns {string[]} Column names for table users */
+function getUsersColumnNames() {
+  const pragma = db.exec('PRAGMA table_info(users)');
+  const values = (pragma[0] && pragma[0].values) ? pragma[0].values : [];
+  return values.map((r) => r[1]);
+}
+
+/** Add column to users if missing. colName must be in whitelist or use exact sqlSuffix. */
+function ensureUsersColumn(colName, sqlSuffix = 'TEXT') {
+  const cols = getUsersColumnNames();
+  if (cols.indexOf(colName) !== -1) return;
+  const safe = MIGRATION_TEXT_COLUMNS.includes(colName) ? colName : null;
+  if (safe) db.run(`ALTER TABLE users ADD COLUMN ${safe} TEXT`);
+  else db.run(`ALTER TABLE users ADD COLUMN ${colName} ${sqlSuffix}`);
+  save();
+}
 
 function queryOne(sql, params, mapRow) {
   const stmt = db.prepare(sql);
@@ -57,18 +104,13 @@ function runSql(sql, params) {
 }
 
 function save() {
-  if (db) {
-    fs.writeFileSync(dbPath, Buffer.from(db.export()));
-  }
+  if (db) fs.writeFileSync(dbPath, Buffer.from(db.export()));
 }
 
 function migrateToUuidIfNeeded() {
-  const pragma = db.exec('PRAGMA table_info(users)');
-  const values = (pragma[0] && pragma[0].values) ? pragma[0].values : [];
-  const columns = values.map(function (r) { return r[1]; });
-  const idCol = values.find(function (r) { return r[1] === 'id'; });
+  const columns = getUsersColumnNames();
+  const idCol = db.exec('PRAGMA table_info(users)')[0].values.find((r) => r[1] === 'id');
   const idType = (idCol && idCol[2] ? idCol[2] : '').toUpperCase();
-
   if (idType !== 'INTEGER') return columns;
 
   db.run('CREATE TABLE users_new (' + USERS_SCHEMA.trim() + ')');
@@ -85,7 +127,7 @@ function migrateToUuidIfNeeded() {
   db.run('DROP TABLE users');
   db.run('ALTER TABLE users_new RENAME TO users');
   save();
-  return db.exec('PRAGMA table_info(users)')[0].values.map(function (r) { return r[1]; });
+  return getUsersColumnNames();
 }
 
 async function initDb() {
@@ -100,85 +142,36 @@ async function initDb() {
   }
 
   db.run('CREATE TABLE IF NOT EXISTS users (' + USERS_SCHEMA.trim() + ')');
-  const columns = migrateToUuidIfNeeded();
-  if (columns.indexOf('username') === -1) {
-    db.run('ALTER TABLE users ADD COLUMN username TEXT');
-    save();
-  }
-  if (columns.indexOf('email_hash') === -1) {
-    db.run('ALTER TABLE users ADD COLUMN email_hash TEXT');
-  }
-  var needBackfill = queryOne('SELECT 1 FROM users WHERE email_hash IS NULL AND email IS NOT NULL AND email != \'\'');
+  migrateToUuidIfNeeded();
+
+  ensureUsersColumn('username');
+  ensureUsersColumn('email_hash');
+
+  const needBackfill = queryOne('SELECT 1 FROM users WHERE email_hash IS NULL AND email IS NOT NULL AND email != \'\'');
   if (needBackfill) {
     const all = queryAll('SELECT id, email FROM users WHERE email_hash IS NULL');
-    for (let i = 0; i < all.length; i++) {
-      const row = all[i];
+    for (const row of all) {
       const hash = emailToHash(row.email);
       if (hash) runSql('UPDATE users SET email_hash = ? WHERE id = ?', [hash, row.id]);
     }
     save();
   }
-  var currentCols = db.exec('PRAGMA table_info(users)')[0].values.map(function (r) { return r[1]; });
-  if (currentCols.indexOf('failed_login_attempts') === -1) {
-    db.run('ALTER TABLE users ADD COLUMN failed_login_attempts INTEGER NOT NULL DEFAULT 0');
-    save();
-  }
-  if (currentCols.indexOf('locked_until') === -1) {
-    db.run('ALTER TABLE users ADD COLUMN locked_until TEXT');
-    save();
-  }
-  var shareCols = ['share_name_prefix', 'share_name', 'share_email', 'share_country_code', 'share_phone', 'share_street', 'share_city', 'share_state', 'share_postal_code'];
-  for (var i = 0; i < shareCols.length; i++) {
-    currentCols = db.exec('PRAGMA table_info(users)')[0].values.map(function (r) { return r[1]; });
-    if (currentCols.indexOf(shareCols[i]) === -1) {
-      db.run('ALTER TABLE users ADD COLUMN ' + shareCols[i] + ' TEXT');
-      save();
-    }
-  }
 
-  var profCols = ['prof_employer_name', 'prof_employer_phone', 'prof_employer_address', 'prof_employee_title', 'prof_years_worked'];
-  for (var j = 0; j < profCols.length; j++) {
-    currentCols = db.exec('PRAGMA table_info(users)')[0].values.map(function (r) { return r[1]; });
-    if (currentCols.indexOf(profCols[j]) === -1) {
-      db.run('ALTER TABLE users ADD COLUMN ' + profCols[j] + ' TEXT');
-      save();
-    }
-  }
-  var bizCols = ['biz_name', 'biz_description', 'biz_address', 'biz_website', 'biz_phone', 'biz_create_date', 'biz_social_facebook', 'biz_social_instagram', 'biz_social_twitter', 'biz_social_tiktok'];
-  for (var k = 0; k < bizCols.length; k++) {
-    currentCols = db.exec('PRAGMA table_info(users)')[0].values.map(function (r) { return r[1]; });
-    if (currentCols.indexOf(bizCols[k]) === -1) {
-      db.run('ALTER TABLE users ADD COLUMN ' + bizCols[k] + ' TEXT');
-      save();
-    }
-  }
-  var acadCols = ['acad_education', 'acad_graduated_from', 'acad_field_pursued', 'acad_highest_level', 'acad_years_attended', 'acad_currently_enrolled'];
-  for (var m = 0; m < acadCols.length; m++) {
-    currentCols = db.exec('PRAGMA table_info(users)')[0].values.map(function (r) { return r[1]; });
-    if (currentCols.indexOf(acadCols[m]) === -1) {
-      db.run('ALTER TABLE users ADD COLUMN ' + acadCols[m] + ' TEXT');
-      save();
-    }
-  }
-  currentCols = db.exec('PRAGMA table_info(users)')[0].values.map(function (r) { return r[1]; });
-  if (currentCols.indexOf('status') === -1) {
-    db.run('ALTER TABLE users ADD COLUMN status TEXT DEFAULT \'active\'');
+  ensureUsersColumn('failed_login_attempts', 'INTEGER NOT NULL DEFAULT 0');
+  ensureUsersColumn('locked_until');
+  for (const col of MIGRATION_TEXT_COLUMNS) ensureUsersColumn(col);
+
+  const cols = getUsersColumnNames();
+  if (cols.indexOf('status') === -1) {
+    db.run("ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'active'");
     runSql('UPDATE users SET status = ? WHERE status IS NULL', ['active']);
     save();
   }
-  currentCols = db.exec('PRAGMA table_info(users)')[0].values.map(function (r) { return r[1]; });
-  if (currentCols.indexOf('reactivation_requested_at') === -1) {
-    db.run('ALTER TABLE users ADD COLUMN reactivation_requested_at TEXT');
-    save();
-  }
-  currentCols = db.exec('PRAGMA table_info(users)')[0].values.map(function (r) { return r[1]; });
-  if (currentCols.indexOf('email_verified') === -1) {
-    db.run('ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0');
-    save();
-  }
+  ensureUsersColumn('reactivation_requested_at');
+  ensureUsersColumn('email_verified', 'INTEGER NOT NULL DEFAULT 0');
 
-  db.run('CREATE TABLE IF NOT EXISTS password_reset_tokens (token TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires_at TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime(\'now\')), FOREIGN KEY (user_id) REFERENCES users(id))');
-  db.run('CREATE TABLE IF NOT EXISTS email_verification_tokens (token TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires_at TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime(\'now\')), FOREIGN KEY (user_id) REFERENCES users(id))');
+  db.run(PASSWORD_RESET_TOKENS_TABLE);
+  db.run(EMAIL_VERIFICATION_TABLE);
   save();
 
   return { insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, getRecentRegistrations, getUserById, deleteUser, updateUser, updateAccountInfo, deactivateUser, reactivateUser, setReactivationRequested, getShareInfo, updateShareInfo, updateProfessionalInfo, updateBusinessInfo, updateAcademicsInfo, createPasswordResetToken, getPasswordResetToken, consumePasswordResetToken, updateUserPassword, createEmailVerificationToken, getEmailVerificationToken, consumeEmailVerificationToken, setEmailVerified };
@@ -258,7 +251,7 @@ function getUserByEmail(email) {
 
 function getAuthUserByEmail(email) {
   if (!email || typeof email !== 'string') return null;
-  var trimmed = email.trim().toLowerCase();
+  const trimmed = email.trim().toLowerCase();
   if (!trimmed) return null;
   return queryOne('SELECT id, email, password_hash, failed_login_attempts, locked_until, status FROM users WHERE LOWER(email) = ?', [trimmed]);
 }
@@ -339,15 +332,15 @@ function updateAcademicsInfo(userId, data) {
 
 function createPasswordResetToken(userId) {
   runSql('DELETE FROM password_reset_tokens WHERE user_id = ?', [userId]);
-  var token = crypto.randomBytes(32).toString('hex');
-  var expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
   runSql('INSERT INTO password_reset_tokens (token, user_id, expires_at) VALUES (?, ?, ?)', [token, userId, expiresAt]);
   return token;
 }
 
 function getPasswordResetToken(token) {
   if (!token || typeof token !== 'string') return null;
-  var row = queryOne('SELECT token, user_id, expires_at FROM password_reset_tokens WHERE token = ?', [token.trim()]);
+  const row = queryOne('SELECT token, user_id, expires_at FROM password_reset_tokens WHERE token = ?', [token.trim()]);
   if (!row) return null;
   if (new Date(row.expires_at) <= new Date()) {
     runSql('DELETE FROM password_reset_tokens WHERE token = ?', [token.trim()]);
@@ -368,15 +361,15 @@ function updateUserPassword(userId, passwordHash) {
 
 function createEmailVerificationToken(userId) {
   runSql('DELETE FROM email_verification_tokens WHERE user_id = ?', [userId]);
-  var token = crypto.randomBytes(32).toString('hex');
-  var expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
   runSql('INSERT INTO email_verification_tokens (token, user_id, expires_at) VALUES (?, ?, ?)', [token, userId, expiresAt]);
   return token;
 }
 
 function getEmailVerificationToken(token) {
   if (!token || typeof token !== 'string') return null;
-  var row = queryOne('SELECT token, user_id, expires_at FROM email_verification_tokens WHERE token = ?', [token.trim()]);
+  const row = queryOne('SELECT token, user_id, expires_at FROM email_verification_tokens WHERE token = ?', [token.trim()]);
   if (!row) return null;
   if (new Date(row.expires_at) <= new Date()) {
     runSql('DELETE FROM email_verification_tokens WHERE token = ?', [token.trim()]);

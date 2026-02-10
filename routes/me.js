@@ -1,11 +1,16 @@
 const { sendJson, parseBody } = require('../lib/http');
 const { getSessionUser, sessions, clearSessionCookie, parseCookies, SESSION_COOKIE } = require('../lib/auth');
+const { isEmail, trimOrNull } = require('../lib/utils/validation');
 
 function match(req) {
   const p = req.urlPath || req.url.split('?')[0];
   return (req.method === 'GET' && p === '/api/me') ||
     (req.method === 'PUT' && (p === '/api/me/share-info' || p === '/api/me/professional-info' || p === '/api/me/business-info' || p === '/api/me/academics-info' || p === '/api/me/account')) ||
     (req.method === 'POST' && p === '/api/me/deactivate');
+}
+
+function isBodyTooLarge(err) {
+  return err && err.message === 'Request body too large';
 }
 
 async function handle(req, res, db) {
@@ -62,6 +67,7 @@ async function handle(req, res, db) {
         }
       });
     } catch (e) {
+      if (isBodyTooLarge(e)) { sendJson(res, 413, { ok: false, error: 'Request body too large.' }); return; }
       console.error(e);
       sendJson(res, 500, { ok: false, user: null });
     }
@@ -81,8 +87,8 @@ async function handle(req, res, db) {
         sendJson(res, 400, { ok: false, error: 'Invalid request body.' });
         return;
       }
-      const shareEmail = body.share_email != null ? String(body.share_email).trim() : null;
-      if (shareEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shareEmail)) {
+      const shareEmail = trimOrNull(body.share_email);
+      if (shareEmail && !isEmail(shareEmail)) {
         sendJson(res, 400, { ok: false, error: 'Please enter a valid email address.' });
         return;
       }
@@ -99,6 +105,7 @@ async function handle(req, res, db) {
       });
       sendJson(res, 200, { ok: true, message: 'Share info saved.' });
     } catch (e) {
+      if (isBodyTooLarge(e)) { sendJson(res, 413, { ok: false, error: 'Request body too large.' }); return; }
       console.error(e);
       sendJson(res, 500, { ok: false, error: 'Failed to save share info.' });
     }
@@ -127,6 +134,7 @@ async function handle(req, res, db) {
       });
       sendJson(res, 200, { ok: true, message: 'Professional info saved.' });
     } catch (e) {
+      if (isBodyTooLarge(e)) { sendJson(res, 413, { ok: false, error: 'Request body too large.' }); return; }
       console.error(e);
       sendJson(res, 500, { ok: false, error: 'Failed to save professional info.' });
     }
@@ -160,6 +168,7 @@ async function handle(req, res, db) {
       });
       sendJson(res, 200, { ok: true, message: 'Business info saved.' });
     } catch (e) {
+      if (isBodyTooLarge(e)) { sendJson(res, 413, { ok: false, error: 'Request body too large.' }); return; }
       console.error(e);
       sendJson(res, 500, { ok: false, error: 'Failed to save business info.' });
     }
@@ -179,17 +188,17 @@ async function handle(req, res, db) {
         sendJson(res, 400, { ok: false, error: 'Invalid request body.' });
         return;
       }
-      const email = body.email != null ? String(body.email).trim() : null;
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      const email = trimOrNull(body.email);
+      if (!email || !isEmail(email)) {
         sendJson(res, 400, { ok: false, error: 'Please enter a valid email address.' });
         return;
       }
-      const phone = body.phone != null ? String(body.phone).trim() : null;
+      const phone = trimOrNull(body.phone);
       if (!phone || phone.length < 7) {
         sendJson(res, 400, { ok: false, error: 'Phone number is required and must be at least 7 characters.' });
         return;
       }
-      const username = body.username != null ? String(body.username).trim() : null;
+      const username = trimOrNull(body.username);
       if (!username || username.length < 2) {
         sendJson(res, 400, { ok: false, error: 'Username is required and must be at least 2 characters.' });
         return;
@@ -205,6 +214,7 @@ async function handle(req, res, db) {
       });
       sendJson(res, 200, { ok: true, message: 'Account updated.' });
     } catch (e) {
+      if (isBodyTooLarge(e)) { sendJson(res, 413, { ok: false, error: 'Request body too large.' }); return; }
       console.error(e);
       sendJson(res, 500, { ok: false, error: 'Failed to update account.' });
     }
@@ -234,6 +244,7 @@ async function handle(req, res, db) {
       });
       sendJson(res, 200, { ok: true, message: 'Academics info saved.' });
     } catch (e) {
+      if (isBodyTooLarge(e)) { sendJson(res, 413, { ok: false, error: 'Request body too large.' }); return; }
       console.error(e);
       sendJson(res, 500, { ok: false, error: 'Failed to save academics info.' });
     }
@@ -262,6 +273,7 @@ async function handle(req, res, db) {
       clearSessionCookie(res);
       sendJson(res, 200, { ok: true, message: 'Account deactivated.' });
     } catch (e) {
+      if (isBodyTooLarge(e)) { sendJson(res, 413, { ok: false, error: 'Request body too large.' }); return; }
       console.error(e);
       sendJson(res, 500, { ok: false, error: 'Failed to deactivate account.' });
     }

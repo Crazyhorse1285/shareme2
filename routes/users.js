@@ -1,5 +1,10 @@
 const { sendJson, parseBody } = require('../lib/http');
 const { requireAdmin } = require('../lib/auth');
+const { trimOrNull } = require('../lib/utils/validation');
+
+function isBodyTooLarge(err) {
+  return err && err.message === 'Request body too large';
+}
 
 function withUser(id, db, fn) {
   const user = db.getUserById(id);
@@ -93,20 +98,22 @@ async function handle(req, res, db) {
             return;
           }
           const body = await parseBody(req);
-          const { email, first_name, last_name, phone, username } = body;
+          const email = trimOrNull(body.email);
+          const phone = trimOrNull(body.phone);
           if (!email || !phone) {
             sendJson(res, 400, { ok: false, error: 'Email and phone are required.' });
             return;
           }
           db.updateUser(id, {
-            email: (email || '').trim(),
-            first_name: first_name != null ? String(first_name).trim() : null,
-            last_name: last_name != null ? String(last_name).trim() : null,
-            phone: (phone || '').trim(),
-            username: username != null ? String(username).trim() : null
+            email,
+            first_name: trimOrNull(body.first_name),
+            last_name: trimOrNull(body.last_name),
+            phone,
+            username: trimOrNull(body.username)
           });
           sendJson(res, 200, { ok: true, message: 'User updated.' });
         } catch (e) {
+          if (isBodyTooLarge(e)) { sendJson(res, 413, { ok: false, error: 'Request body too large.' }); return; }
           console.error(e);
           sendJson(res, 500, { ok: false, error: 'Failed to update user.' });
         }
