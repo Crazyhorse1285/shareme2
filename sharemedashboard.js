@@ -354,6 +354,9 @@
     dom.deactivateEmailError = getEl('deactivate-email-error');
     dom.upgradeModal = getEl('upgrade-modal');
     dom.upgradePaymentError = getEl('upgrade-payment-error');
+    dom.privacyModal = getEl('privacy-modal');
+    dom.termsModal = getEl('terms-modal');
+    dom.contactModal = getEl('contact-modal');
   }
 
   function bindEvents() {
@@ -485,6 +488,59 @@
         setEditLinkText(currentProfile);
       });
     });
+
+    var privacyLink = getEl('footer-link-privacy');
+    if (privacyLink) {
+      privacyLink.addEventListener('click', function (e) {
+        e.preventDefault();
+        openModal(dom.privacyModal);
+      });
+    }
+    var termsLink = getEl('footer-link-terms');
+    if (termsLink) {
+      termsLink.addEventListener('click', function (e) {
+        e.preventDefault();
+        openModal(dom.termsModal);
+      });
+    }
+    var contactLink = getEl('footer-link-contact');
+    if (contactLink) {
+      contactLink.addEventListener('click', function (e) {
+        e.preventDefault();
+        openModal(dom.contactModal);
+      });
+    }
+    var privacyClose = getEl('privacy-modal-close');
+    if (privacyClose && dom.privacyModal) {
+      privacyClose.addEventListener('click', function () {
+        dom.privacyModal.classList.remove('open');
+        dom.privacyModal.setAttribute('aria-hidden', 'true');
+      });
+    }
+    var termsClose = getEl('terms-modal-close');
+    if (termsClose && dom.termsModal) {
+      termsClose.addEventListener('click', function () {
+        dom.termsModal.classList.remove('open');
+        dom.termsModal.setAttribute('aria-hidden', 'true');
+      });
+    }
+    var contactCancel = getEl('contact-modal-cancel');
+    if (contactCancel && dom.contactModal) {
+      contactCancel.addEventListener('click', function () {
+        dom.contactModal.classList.remove('open');
+        dom.contactModal.setAttribute('aria-hidden', 'true');
+      });
+    }
+    var contactForm = getEl('contact-form');
+    if (contactForm) {
+      contactForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        showSuccessNotification('Thank you. We have received your message and will get back to you soon.');
+        dom.contactModal.classList.remove('open');
+        dom.contactModal.setAttribute('aria-hidden', 'true');
+        contactForm.reset();
+      });
+    }
   }
 
   function showUpgradeSuccessToast() {
