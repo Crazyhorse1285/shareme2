@@ -352,6 +352,8 @@
     dom.deactivateModal = getEl('deactivate-modal');
     dom.deactivateEmailInput = getEl('deactivate-email');
     dom.deactivateEmailError = getEl('deactivate-email-error');
+    dom.upgradeModal = getEl('upgrade-modal');
+    dom.upgradePaymentError = getEl('upgrade-payment-error');
   }
 
   function bindEvents() {
@@ -419,6 +421,50 @@
       btn.addEventListener('click', closeShareModal);
     });
 
+    var upgradeCancelBtn = getEl('upgrade-modal-cancel');
+    if (upgradeCancelBtn && dom.upgradeModal) {
+      upgradeCancelBtn.addEventListener('click', function () {
+        dom.upgradeModal.classList.remove('open');
+        dom.upgradeModal.setAttribute('aria-hidden', 'true');
+        if (dom.upgradePaymentError) { dom.upgradePaymentError.style.display = 'none'; dom.upgradePaymentError.textContent = ''; }
+      });
+    }
+    var upgradeForm = getEl('upgrade-payment-form');
+    if (upgradeForm) {
+      upgradeForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (dom.upgradePaymentError) { dom.upgradePaymentError.style.display = 'none'; dom.upgradePaymentError.textContent = ''; }
+        var cardNumber = (getEl('upgrade-card-number') && getEl('upgrade-card-number').value) ? getEl('upgrade-card-number').value.replace(/\s/g, '') : '';
+        var expiration = (getEl('upgrade-expiration') && getEl('upgrade-expiration').value) ? getEl('upgrade-expiration').value.trim() : '';
+        var cvv = (getEl('upgrade-cvv') && getEl('upgrade-cvv').value) ? getEl('upgrade-cvv').value.trim() : '';
+        if (!cardNumber || !expiration || !cvv) {
+          if (dom.upgradePaymentError) { dom.upgradePaymentError.textContent = 'Please enter card number, expiration, and CVV.'; dom.upgradePaymentError.style.display = 'block'; }
+          return;
+        }
+        var submitBtn = getEl('upgrade-modal-submit');
+        if (submitBtn) submitBtn.disabled = true;
+        fetch('/api/checkout/mock-complete', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ card_number: cardNumber, expiration: expiration, cvv: cvv })
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (res) {
+            if (res.ok) {
+              window.location.href = 'sharemedashboard.html?upgrade=success';
+            } else {
+              if (dom.upgradePaymentError) { dom.upgradePaymentError.textContent = res.error || 'Payment failed.'; dom.upgradePaymentError.style.display = 'block'; }
+              if (submitBtn) submitBtn.disabled = false;
+            }
+          })
+          .catch(function () {
+            if (dom.upgradePaymentError) { dom.upgradePaymentError.textContent = 'Unable to process. Please try again.'; dom.upgradePaymentError.style.display = 'block'; }
+            if (submitBtn) submitBtn.disabled = false;
+          });
+      });
+    }
+
     dom.shareEmailInput.addEventListener('blur', function () {
       var v = val('share-email');
       if (v && !isValidEmail(v)) showShareEmailError('Please enter a valid email address.');
@@ -441,11 +487,31 @@
     });
   }
 
+  function showUpgradeSuccessToast() {
+    var toast = document.getElementById('success-toast') || (function () {
+      var t = document.createElement('div');
+      t.id = 'success-toast';
+      t.className = 'success-toast';
+      t.setAttribute('role', 'status');
+      document.body.appendChild(t);
+      return t;
+    })();
+    toast.textContent = "You're now on Pro!";
+    toast.classList.add('visible');
+    setTimeout(function () { toast.classList.remove('visible'); }, 4000);
+  }
+
   function init() {
     cacheDom();
     setQrFor('personal');
     setEditLinkText('personal');
     bindEvents();
+
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('upgrade') === 'success') {
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setTimeout(showUpgradeSuccessToast, 300);
+    }
 
     fetch('/api/me', { credentials: 'include' })
       .then(function (r) { return r.json(); })
@@ -455,6 +521,30 @@
           dom.navGuest.style.display = 'none';
           dom.navAuth.style.display = '';
           dom.displayNameEl.textContent = displayName(data.user);
+          // Free tier: hide Professional, Business, Academics buttons and center Personal
+          var plan = (currentUser.plan || 'free').toLowerCase();
+          var funnelContainer = document.querySelector('.funnel-buttons');
+          document.querySelectorAll('.btn-funnel.pro-tier-only').forEach(function (btn) {
+            btn.style.display = plan === 'pro' ? '' : 'none';
+          });
+          if (funnelContainer) {
+            funnelContainer.classList.toggle('funnel-buttons--free-tier', plan !== 'pro');
+          }
+          var upgradeWrap = document.getElementById('funnel-upgrade-wrap');
+          var upgradeLink = document.getElementById('dashboard-upgrade-link');
+          if (plan === 'free' && upgradeWrap && upgradeLink) {
+            upgradeWrap.style.display = '';
+            upgradeLink.addEventListener('click', function (e) {
+              e.preventDefault();
+              if (dom.upgradeModal) {
+                if (dom.upgradePaymentError) { dom.upgradePaymentError.style.display = 'none'; dom.upgradePaymentError.textContent = ''; }
+                dom.upgradeModal.classList.add('open');
+                dom.upgradeModal.setAttribute('aria-hidden', 'false');
+              }
+            });
+          } else if (upgradeWrap) {
+            upgradeWrap.style.display = 'none';
+          }
         } else {
           window.location.replace('sharemelandingpage.html');
         }

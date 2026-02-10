@@ -34,6 +34,7 @@ async function handle(req, res, db) {
           display_name: user.display_name,
           username: user.username,
           country_code: user.country_code,
+          plan: user.plan || 'free',
           share_name_prefix: user.share_name_prefix,
           share_name: user.share_name,
           share_email: user.share_email,

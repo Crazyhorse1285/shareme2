@@ -72,14 +72,76 @@
       <h1 class="funnel-title">What would you like to share?</h1>
       <div class="funnel-buttons" role="group" aria-label="Profile type">
         <button type="button" class="btn btn-funnel selected" data-funnel="personal">Personal</button>
-        <button type="button" class="btn btn-funnel" data-funnel="professional">Professional</button>
-        <button type="button" class="btn btn-funnel" data-funnel="business">Business</button>
-        <button type="button" class="btn btn-funnel" data-funnel="academics">Academics</button>
+        <button type="button" class="btn btn-funnel pro-tier-only" data-funnel="professional">Professional</button>
+        <button type="button" class="btn btn-funnel pro-tier-only" data-funnel="business">Business</button>
+        <button type="button" class="btn btn-funnel pro-tier-only" data-funnel="academics">Academics</button>
       </div>
       <p class="funnel-edit-wrap">
         <a href="#" id="share-info-edit-link" class="share-info-edit-link">Edit personal information</a>
       </p>
+      <p class="funnel-upgrade-wrap" id="funnel-upgrade-wrap" style="display: none;">
+        <a href="#" id="dashboard-upgrade-link" class="link">Upgrade to Pro</a> to unlock Professional, Business, and Academics profiles.
+      </p>
     </section>
+
+    <div id="upgrade-modal" class="edit-modal" aria-hidden="true">
+      <div class="edit-modal-inner upgrade-modal-inner">
+        <div class="edit-modal-scroll">
+          <h2>Upgrade to Pro</h2>
+          <p class="edit-modal-desc">Enter your payment and billing details.</p>
+          <form id="upgrade-payment-form">
+            <div class="form-group">
+              <label for="upgrade-card-name">Name on card</label>
+              <input type="text" id="upgrade-card-name" name="card_name" placeholder="Full name as shown on card" autocomplete="cc-name">
+            </div>
+            <div class="form-group">
+              <label for="upgrade-card-number">Card number</label>
+              <input type="text" id="upgrade-card-number" name="card_number" placeholder="1234 5678 9012 3456" inputmode="numeric" maxlength="19" autocomplete="cc-number">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="upgrade-expiration">Expiration (MM/YY)</label>
+                <input type="text" id="upgrade-expiration" name="expiration" placeholder="MM/YY" inputmode="numeric" maxlength="5" autocomplete="cc-exp">
+              </div>
+              <div class="form-group">
+                <label for="upgrade-cvv">CVV</label>
+                <input type="text" id="upgrade-cvv" name="cvv" placeholder="123" inputmode="numeric" maxlength="4" autocomplete="cc-csc">
+              </div>
+            </div>
+            <fieldset class="upgrade-billing-fieldset">
+              <legend>Billing address</legend>
+              <div class="form-group">
+                <label for="upgrade-address-line1">Street address</label>
+                <input type="text" id="upgrade-address-line1" name="address_line1" placeholder="Street address" autocomplete="street-address">
+              </div>
+              <div class="form-group">
+                <label for="upgrade-address-line2">Address line 2 <span class="label-optional">(optional)</span></label>
+                <input type="text" id="upgrade-address-line2" name="address_line2" placeholder="Apt, suite, etc." autocomplete="address-line2">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="upgrade-address-city">City</label>
+                  <input type="text" id="upgrade-address-city" name="address_city" placeholder="City" autocomplete="address-level2">
+                </div>
+                <div class="form-group">
+                  <label for="upgrade-address-state">State / Province</label>
+                  <input type="text" id="upgrade-address-state" name="address_state" placeholder="State" autocomplete="address-level1">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="upgrade-address-zip">Postal code</label>
+                <input type="text" id="upgrade-address-zip" name="address_zip" placeholder="Postal code" autocomplete="postal-code">
+              </div>
+            </fieldset>
+            <p class="form-error" id="upgrade-payment-error" role="alert" style="display: none;"></p>
+            <div class="edit-modal-actions">
+              <button type="button" class="btn btn-secondary" id="upgrade-modal-cancel">Cancel</button>
+              <button type="submit" class="btn btn-primary" id="upgrade-modal-submit">Complete payment</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
 
     <div id="share-info-modal" class="edit-modal" aria-hidden="true">
       <div class="edit-modal-inner">

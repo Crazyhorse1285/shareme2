@@ -5,9 +5,10 @@ const usersRoute = require('./routes/users');
 const adminRoute = require('./routes/admin');
 const meRoute = require('./routes/me');
 const authRoute = require('./routes/auth');
+const subscriptionRoute = require('./routes/subscription');
 const staticRoute = require('./routes/static');
 
-const routes = [usersRoute, adminRoute, meRoute, authRoute, staticRoute];
+const routes = [usersRoute, adminRoute, meRoute, authRoute, subscriptionRoute, staticRoute];
 
 function createRouter(db) {
   return async function requestHandler(req, res) {

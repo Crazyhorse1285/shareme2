@@ -202,6 +202,12 @@ body {
   gap: 1rem;
 }
 
+/* Free tier: single Personal button centered */
+.funnel-buttons.funnel-buttons--free-tier {
+  display: flex;
+  justify-content: center;
+}
+
 .btn-funnel {
   background: var(--bg-card);
   color: var(--text-primary);
@@ -231,6 +237,17 @@ body {
 .funnel-edit-wrap {
   margin: 1.5rem 0 0;
   font-size: 0.9375rem;
+}
+
+.funnel-upgrade-wrap {
+  margin: 0.75rem 0 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.funnel-upgrade-wrap .link {
+  font-weight: 600;
+  color: var(--accent);
 }
 
 .share-info-edit-link {
@@ -422,7 +439,12 @@ body {
 .edit-modal textarea { width: 100%; padding: 0.5rem 0.75rem; font: inherit; border: 1px solid var(--border); border-radius: var(--radius); resize: vertical; min-height: 4rem; }
 .edit-modal .social-fieldset { border: none; margin: 0 0 1rem; padding: 0; }
 .edit-modal .social-fieldset legend { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.5rem; color: var(--text-primary); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .edit-modal-actions { margin-top: 1.25rem; display: flex; gap: 0.5rem; justify-content: flex-end; }
+.upgrade-modal-inner { max-width: 440px; }
+.upgrade-billing-fieldset { border: none; margin: 1rem 0 0; padding: 1rem 0 0; border-top: 1px solid var(--border); }
+.upgrade-billing-fieldset legend { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.5rem; color: var(--text-primary); padding: 0; }
+.label-optional { font-weight: 400; color: var(--text-secondary); font-size: 0.85em; }
 .account-deactivate-wrap { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); }
 .deactivate-account-link { font-size: 0.875rem; color: var(--text-muted); }
 .deactivate-account-link:hover { color: #dc2626; }

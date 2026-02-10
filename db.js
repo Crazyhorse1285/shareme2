@@ -169,19 +169,24 @@ async function initDb() {
   }
   ensureUsersColumn('reactivation_requested_at');
   ensureUsersColumn('email_verified', 'INTEGER NOT NULL DEFAULT 0');
+  ensureUsersColumn('plan', "TEXT DEFAULT 'free'");
+  runSql("UPDATE users SET plan = 'free' WHERE plan IS NULL");
+  save();
 
   db.run(PASSWORD_RESET_TOKENS_TABLE);
   db.run(EMAIL_VERIFICATION_TABLE);
   save();
 
-  return { insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, getRecentRegistrations, getUserById, deleteUser, updateUser, updateAccountInfo, deactivateUser, reactivateUser, setReactivationRequested, getShareInfo, updateShareInfo, updateProfessionalInfo, updateBusinessInfo, updateAcademicsInfo, createPasswordResetToken, getPasswordResetToken, consumePasswordResetToken, updateUserPassword, createEmailVerificationToken, getEmailVerificationToken, consumeEmailVerificationToken, setEmailVerified };
+  return { insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, getRecentRegistrations, getUserById, deleteUser, updateUser, updateAccountInfo, updateUserPlan, deactivateUser, reactivateUser, setReactivationRequested, getShareInfo, updateShareInfo, updateProfessionalInfo, updateBusinessInfo, updateAcademicsInfo, createPasswordResetToken, getPasswordResetToken, consumePasswordResetToken, updateUserPassword, createEmailVerificationToken, getEmailVerificationToken, consumeEmailVerificationToken, setEmailVerified };
 }
 
 function getUserById(id) {
-  return queryOne(
-    'SELECT id, email, first_name, last_name, country_code, phone, username, display_name, created_at, status, reactivation_requested_at, email_verified, share_name_prefix, share_name, share_email, share_country_code, share_phone, share_street, share_city, share_state, share_postal_code, prof_employer_name, prof_employer_phone, prof_employer_address, prof_employee_title, prof_years_worked, biz_name, biz_description, biz_address, biz_website, biz_phone, biz_create_date, biz_social_facebook, biz_social_instagram, biz_social_twitter, biz_social_tiktok, acad_education, acad_graduated_from, acad_field_pursued, acad_highest_level, acad_years_attended, acad_currently_enrolled FROM users WHERE id = ?',
+  const row = queryOne(
+    'SELECT id, email, first_name, last_name, country_code, phone, username, display_name, created_at, status, reactivation_requested_at, email_verified, plan, share_name_prefix, share_name, share_email, share_country_code, share_phone, share_street, share_city, share_state, share_postal_code, prof_employer_name, prof_employer_phone, prof_employer_address, prof_employee_title, prof_years_worked, biz_name, biz_description, biz_address, biz_website, biz_phone, biz_create_date, biz_social_facebook, biz_social_instagram, biz_social_twitter, biz_social_tiktok, acad_education, acad_graduated_from, acad_field_pursued, acad_highest_level, acad_years_attended, acad_currently_enrolled FROM users WHERE id = ?',
     [id]
   );
+  if (row && row.plan == null) row.plan = 'free';
+  return row;
 }
 
 function deactivateUser(userId) {
@@ -238,8 +243,8 @@ function insertUser(user) {
   const id = crypto.randomUUID();
   const emailHash = emailToHash(user.email);
   db.run(
-    'INSERT INTO users (id, email, email_hash, first_name, last_name, country_code, phone, password_hash, display_name, username, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [id, user.email, emailHash, user.firstName || null, user.lastName || null, user.countryCode || null, user.phone, user.passwordHash, user.displayName || null, user.username || null, 'active']
+    'INSERT INTO users (id, email, email_hash, first_name, last_name, country_code, phone, password_hash, display_name, username, status, plan) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [id, user.email, emailHash, user.firstName || null, user.lastName || null, user.countryCode || null, user.phone, user.passwordHash, user.displayName || null, user.username || null, 'active', 'free']
   );
   save();
   return id;
@@ -388,4 +393,12 @@ function setEmailVerified(userId) {
   runSql('UPDATE users SET email_verified = 1 WHERE id = ?', [userId]);
 }
 
-module.exports = { initDb, insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, emailToHash, createPasswordResetToken, getPasswordResetToken, consumePasswordResetToken, updateUserPassword, createEmailVerificationToken, getEmailVerificationToken, consumeEmailVerificationToken, setEmailVerified };
+/** Set user plan (e.g. 'free', 'pro'). Used after successful payment via webhook. */
+function updateUserPlan(userId, plan) {
+  if (!userId || !plan || typeof plan !== 'string') return;
+  const p = plan.trim().toLowerCase();
+  if (p !== 'free' && p !== 'pro') return;
+  runSql('UPDATE users SET plan = ? WHERE id = ?', [p, userId]);
+}
+
+module.exports = { initDb, insertUser, getUserByEmail, getAuthUserByEmail, getAuthUserByEmailHash, recordFailedLogin, clearLoginLock, emailToHash, createPasswordResetToken, getPasswordResetToken, consumePasswordResetToken, updateUserPassword, createEmailVerificationToken, getEmailVerificationToken, consumeEmailVerificationToken, setEmailVerified, updateUserPlan };

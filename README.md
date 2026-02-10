@@ -2,29 +2,42 @@
 
 Personal information sharing — landing page, create account, and dashboard.
 
-## Running locally (test before pushing to Render)
+## Overview
 
-1. **Install dependencies** (once):
+- **What it is**: A Node.js web app for user registration, login, profile/dashboard, password reset, and email verification. Admins can view registrations and manage users.
+- **Stack**: Node.js, vanilla HTTP server, sql.js (SQLite in-process), Resend for email.
+- **Main URLs** (after starting the server):
+  - Landing: http://localhost:3000/ or http://localhost:3000/sharemelandingpage.html
+  - Register: http://localhost:3000/createuser.html
+  - Dashboard: http://localhost:3000/sharemedashboard.html
+  - Forgot password: http://localhost:3000/forgot-password.html
+  - Admin login: http://localhost:3000/admin-login.html
+
+## Install
+
+1. Clone or download the project and open a terminal in the project folder.
+2. Install dependencies (once):
    ```powershell
    npm install
    ```
 
-2. **Start the server**:
-   ```powershell
-   npm start
-   ```
-   Or: `node server.js`
+## Commands
 
-3. **Open in your browser**:
-   - http://localhost:3000/
-   - Or: http://localhost:3000/sharemelandingpage.html
+| Command | Description |
+|--------|--------------|
+| `npm start` | Start the server (default port 3000). |
+| `node server.js` | Same as `npm start`. |
+| `npm test` | Run API tests (uses test DB; see test folder). |
+| `$env:PORT=3001; node server.js` | Start on a specific port (e.g. 3001). |
 
-If port 3000 is in use, the server will try 3001, 3002, etc. You can also set a port:
-   ```powershell
-   $env:PORT=3001; node server.js
-   ```
+**Stop the server**: Press `Ctrl+C` in the terminal.
 
-4. **Stop the server**: Press `Ctrl+C` in the terminal.
+## Running locally (test before pushing to Render)
+
+1. After **Install** and **Commands** above, start the server with `npm start` or `node server.js`.
+2. Open in your browser: http://localhost:3000/ or http://localhost:3000/sharemelandingpage.html.
+
+If port 3000 is in use, set a different port (e.g. `$env:PORT=3001; node server.js`).
 
 ### Password reset (Forgot password)
 
@@ -55,6 +68,27 @@ Only you (the sole admin) can open **View registrations** and **View database**.
 
 Admin login uses a separate cookie from the main site, so you can be logged in as a normal user and as admin in different tabs.
 
+### Pro upgrade (mock payment / Stripe)
+
+**Mock payment (default):** For this pet project, upgrading uses a **mock card** — no real payment. Click “Upgrade to Pro”, enter in the modal:
+
+- **Card number:** 6897689768971452  
+- **Expiration:** 10/30 (or 1030)  
+- **CVV:** 999  
+
+Name and address can be dummy. On success you’re upgraded to Pro and redirected to the dashboard.
+
+**Optional — real payments with Stripe:**
+
+1. Create a [Stripe](https://stripe.com) account and in the Dashboard create a **Product** (e.g. “ShareMe Pro”) with a **one-time Price**.
+2. Set environment variables (see `.env.example`):
+   - `STRIPE_SECRET_KEY` — Stripe secret key (e.g. `sk_test_...`)
+   - `STRIPE_PRO_PRICE_ID` — Price ID for the Pro one-time payment (e.g. `price_...`)
+   - `STRIPE_WEBHOOK_SECRET` — From Stripe → Developers → Webhooks → Add endpoint `https://yourdomain.com/api/webhooks/stripe`, event `checkout.session.completed`
+3. After payment, Stripe sends a webhook; the server sets the user’s plan to `pro` and they get access to Professional, Business, and Academics profiles.
+
+Locally you can use the [Stripe CLI](https://stripe.com/docs/stripe-cli) to forward webhooks: `stripe listen --forward-to localhost:3000/api/webhooks/stripe`.
+
 ## Move this project out of the Unity folder (optional)
 
 This folder was created as a **standalone** copy of ShareMe with no Unity files. To use it as its own project:
@@ -76,6 +110,10 @@ This folder was created as a **standalone** copy of ShareMe with no Unity files.
    git branch -M main
    git push -u origin main
    ```
+
+## Project changes and refactors
+
+All code changes and refactors are in **[project-changes/CHANGELOG.md](project-changes/CHANGELOG.md)**. Update that file when you make significant changes.
 
 ## Files
 

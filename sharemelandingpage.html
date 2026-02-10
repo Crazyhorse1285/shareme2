@@ -58,7 +58,8 @@
             <li>Personal information only</li>
             <li>50 shares</li>
           </ul>
-          <a href="#" class="btn btn-primary btn-block">Upgrade to Pro</a>
+          <p class="form-error" id="upgrade-error" role="alert" style="display: none;"></p>
+          <a href="#" id="upgrade-to-pro-btn" class="btn btn-primary btn-block">Upgrade to Pro</a>
         </article>
         <article class="pricing-tile">
           <h2 class="pricing-tier">Pro</h2>
@@ -67,11 +68,70 @@
             <li>Share all user information including professional, business and academic</li>
             <li>500 shares</li>
           </ul>
-          <a href="#" class="btn btn-secondary btn-block">Get Pro</a>
+          <a href="sharemedashboard.html" id="pro-tile-cta" class="btn btn-secondary btn-block">Learn more</a>
         </article>
       </div>
     </section>
   </main>
+
+  <div id="upgrade-modal" class="edit-modal" aria-hidden="true">
+    <div class="edit-modal-inner upgrade-modal-inner">
+      <div class="edit-modal-scroll">
+        <h2>Upgrade to Pro</h2>
+        <p class="edit-modal-desc">Enter your payment and billing details.</p>
+        <form id="upgrade-payment-form">
+          <div class="form-group">
+            <label for="upgrade-card-name">Name on card</label>
+            <input type="text" id="upgrade-card-name" name="card_name" placeholder="Full name as shown on card" autocomplete="cc-name">
+          </div>
+          <div class="form-group">
+            <label for="upgrade-card-number">Card number</label>
+            <input type="text" id="upgrade-card-number" name="card_number" placeholder="1234 5678 9012 3456" inputmode="numeric" maxlength="19" autocomplete="cc-number">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="upgrade-expiration">Expiration (MM/YY)</label>
+              <input type="text" id="upgrade-expiration" name="expiration" placeholder="MM/YY" inputmode="numeric" maxlength="5" autocomplete="cc-exp">
+            </div>
+            <div class="form-group">
+              <label for="upgrade-cvv">CVV</label>
+              <input type="text" id="upgrade-cvv" name="cvv" placeholder="123" inputmode="numeric" maxlength="4" autocomplete="cc-csc">
+            </div>
+          </div>
+          <fieldset class="upgrade-billing-fieldset">
+            <legend>Billing address</legend>
+            <div class="form-group">
+              <label for="upgrade-address-line1">Street address</label>
+              <input type="text" id="upgrade-address-line1" name="address_line1" placeholder="Street address" autocomplete="street-address">
+            </div>
+            <div class="form-group">
+              <label for="upgrade-address-line2">Address line 2 <span class="label-optional">(optional)</span></label>
+              <input type="text" id="upgrade-address-line2" name="address_line2" placeholder="Apt, suite, etc." autocomplete="address-line2">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="upgrade-address-city">City</label>
+                <input type="text" id="upgrade-address-city" name="address_city" placeholder="City" autocomplete="address-level2">
+              </div>
+              <div class="form-group">
+                <label for="upgrade-address-state">State / Province</label>
+                <input type="text" id="upgrade-address-state" name="address_state" placeholder="State" autocomplete="address-level1">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="upgrade-address-zip">Postal code</label>
+              <input type="text" id="upgrade-address-zip" name="address_zip" placeholder="Postal code" autocomplete="postal-code">
+            </div>
+          </fieldset>
+          <p class="form-error" id="upgrade-payment-error" role="alert" style="display: none;"></p>
+          <div class="edit-modal-actions">
+            <button type="button" class="btn btn-secondary" id="upgrade-modal-cancel">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="upgrade-modal-submit">Complete payment</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
   <div id="login-modal" class="login-modal" aria-hidden="true">
     <div class="login-modal-inner">
@@ -275,8 +335,90 @@
           navGuest.style.display = 'none';
           navAuth.style.display = '';
           displayNameEl.textContent = displayName(meData.user);
+          var proCta = document.getElementById('pro-tile-cta');
+          if (proCta && (meData.user.plan || 'free').toLowerCase() === 'pro') {
+            proCta.textContent = 'Go to Dashboard';
+            proCta.href = 'sharemedashboard.html';
+          }
         }
       });
+
+      var upgradeBtn = document.getElementById('upgrade-to-pro-btn');
+      if (upgradeBtn) {
+        upgradeBtn.addEventListener('click', function (e) {
+          e.preventDefault();
+          var errEl = document.getElementById('upgrade-error');
+          if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+          fetch('/api/me', { credentials: 'include' }).then(function (r) { return r.json(); })
+            .then(function (meData) {
+              if (!meData.ok || !meData.user) {
+                document.getElementById('login-modal').classList.add('open');
+                document.getElementById('login-modal').setAttribute('aria-hidden', 'false');
+                return;
+              }
+              if ((meData.user.plan || 'free').toLowerCase() === 'pro') {
+                window.location.href = 'sharemedashboard.html';
+                return;
+              }
+              var upModal = document.getElementById('upgrade-modal');
+              var upErr = document.getElementById('upgrade-payment-error');
+              if (upErr) { upErr.style.display = 'none'; upErr.textContent = ''; }
+              if (upModal) { upModal.classList.add('open'); upModal.setAttribute('aria-hidden', 'false'); }
+            })
+            .catch(function () {
+              if (errEl) { errEl.textContent = 'Unable to start checkout. Please try again.'; errEl.style.display = 'block'; }
+            });
+        });
+      }
+
+      var upgradeModalCancel = document.getElementById('upgrade-modal-cancel');
+      if (upgradeModalCancel) {
+        upgradeModalCancel.addEventListener('click', function () {
+          var upModal = document.getElementById('upgrade-modal');
+          var upErr = document.getElementById('upgrade-payment-error');
+          if (upModal) { upModal.classList.remove('open'); upModal.setAttribute('aria-hidden', 'true'); }
+          if (upErr) { upErr.style.display = 'none'; upErr.textContent = ''; }
+        });
+      }
+      var upgradePaymentForm = document.getElementById('upgrade-payment-form');
+      if (upgradePaymentForm) {
+        upgradePaymentForm.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var upErr = document.getElementById('upgrade-payment-error');
+          var cardEl = document.getElementById('upgrade-card-number');
+          var expEl = document.getElementById('upgrade-expiration');
+          var cvvEl = document.getElementById('upgrade-cvv');
+          var cardNumber = cardEl && cardEl.value ? cardEl.value.replace(/\s/g, '') : '';
+          var expiration = expEl && expEl.value ? expEl.value.trim() : '';
+          var cvv = cvvEl && cvvEl.value ? cvvEl.value.trim() : '';
+          if (upErr) { upErr.style.display = 'none'; upErr.textContent = ''; }
+          if (!cardNumber || !expiration || !cvv) {
+            if (upErr) { upErr.textContent = 'Please enter card number, expiration, and CVV.'; upErr.style.display = 'block'; }
+            return;
+          }
+          var submitBtn = document.getElementById('upgrade-modal-submit');
+          if (submitBtn) submitBtn.disabled = true;
+          fetch('/api/checkout/mock-complete', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ card_number: cardNumber, expiration: expiration, cvv: cvv })
+          })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+              if (res.ok) {
+                window.location.href = 'sharemedashboard.html?upgrade=success';
+              } else {
+                if (upErr) { upErr.textContent = res.error || 'Payment failed.'; upErr.style.display = 'block'; }
+                if (submitBtn) submitBtn.disabled = false;
+              }
+            })
+            .catch(function () {
+              if (upErr) { upErr.textContent = 'Unable to process. Please try again.'; upErr.style.display = 'block'; }
+              if (submitBtn) submitBtn.disabled = false;
+            });
+        });
+      }
 
       document.getElementById('nav-logout').addEventListener('click', function (e) {
         e.preventDefault();
